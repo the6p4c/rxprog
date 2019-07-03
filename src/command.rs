@@ -1,22 +1,24 @@
 use std::num::Wrapping;
 
-trait Command {
-    fn opcode(&self) -> u8;
-    fn has_size_field(&self) -> bool;
-    fn payload(&self) -> Vec<u8>;
+struct CommandData {
+    opcode: u8,
+    has_size_field: bool,
+    payload: Vec<u8>,
+}
 
+impl CommandData {
     fn bytes(&self) -> Vec<u8> {
         let mut bytes = vec![];
-        let payload = self.payload();
+        let payload = &self.payload;
         let payload_size = payload.len();
 
-        bytes.push(self.opcode());
+        bytes.push(self.opcode);
 
-        if self.has_size_field() {
+        if self.has_size_field {
             bytes.push(payload_size as u8);
         }
 
-        bytes.extend(self.payload());
+        bytes.extend(payload);
 
         if payload_size != 0 {
             let sum = bytes.iter().map(|x| Wrapping(*x)).sum::<Wrapping<u8>>().0;
@@ -28,85 +30,131 @@ trait Command {
     }
 }
 
-enum CommandInquirySelection {
-    SupportedDeviceInquiry,
-    DeviceSelection {
-        device_code: u32,
-    },
-    ClockModeInquiry,
-    ClockModeSelection {
-        mode: u8,
-    },
-    MultiplicationRatioInquiry,
-    OperatingFrequencyInquiry,
-    NewBitRateSelection {
-        bit_rate: u16,
-        input_frequency: u16,
-        clock_type_count: u8,
-        multiplication_ratio_1: u8,
-        multiplication_ratio_2: u8,
-    },
-    ProgrammingErasureStateTransition,
+pub trait Command {
+    fn bytes(&self) -> Vec<u8>;
 }
 
-impl Command for CommandInquirySelection {
-    fn opcode(&self) -> u8 {
-        use CommandInquirySelection::*;
+struct SupportedDeviceInquiry {}
 
-        match self {
-            SupportedDeviceInquiry => 0x20,
-            DeviceSelection { .. } => 0x10,
-            ClockModeInquiry => 0x21,
-            ClockModeSelection { .. } => 0x11,
-            MultiplicationRatioInquiry => 0x22,
-            OperatingFrequencyInquiry => 0x23,
-            NewBitRateSelection { .. } => 0x3F,
-            ProgrammingErasureStateTransition => 0x40,
+impl Command for SupportedDeviceInquiry {
+    fn bytes(&self) -> Vec<u8> {
+        CommandData {
+            opcode: 0x20,
+            has_size_field: false,
+            payload: vec![],
         }
+        .bytes()
     }
+}
 
-    fn has_size_field(&self) -> bool {
-        use CommandInquirySelection::*;
+struct DeviceSelection {
+    device_code: u32,
+}
 
-        match self {
-            SupportedDeviceInquiry => false,
-            DeviceSelection { .. } => true,
-            ClockModeInquiry => false,
-            ClockModeSelection { .. } => true,
-            MultiplicationRatioInquiry => false,
-            OperatingFrequencyInquiry => false,
-            NewBitRateSelection { .. } => true,
-            ProgrammingErasureStateTransition => false,
+impl Command for DeviceSelection {
+    fn bytes(&self) -> Vec<u8> {
+        CommandData {
+            opcode: 0x10,
+            has_size_field: true,
+            // TODO: Check endianness
+            payload: self.device_code.to_le_bytes().to_vec(),
         }
+        .bytes()
     }
+}
 
-    fn payload(&self) -> Vec<u8> {
-        use CommandInquirySelection::*;
+struct ClockModeInquiry {}
 
-        match self {
-            DeviceSelection { device_code } => {
-                // TODO: Check endianness
-                device_code.to_le_bytes().to_vec()
-            }
-            ClockModeSelection { mode } => vec![*mode],
-            NewBitRateSelection {
-                bit_rate,
-                input_frequency,
-                clock_type_count,
-                multiplication_ratio_1,
-                multiplication_ratio_2,
-            } => {
+impl Command for ClockModeInquiry {
+    fn bytes(&self) -> Vec<u8> {
+        CommandData {
+            opcode: 0x21,
+            has_size_field: false,
+            payload: vec![],
+        }
+        .bytes()
+    }
+}
+
+struct ClockModeSelection {
+    mode: u8,
+}
+
+impl Command for ClockModeSelection {
+    fn bytes(&self) -> Vec<u8> {
+        CommandData {
+            opcode: 0x11,
+            has_size_field: true,
+            payload: vec![self.mode],
+        }
+        .bytes()
+    }
+}
+
+struct MultiplicationRatioInquiry {}
+
+impl Command for MultiplicationRatioInquiry {
+    fn bytes(&self) -> Vec<u8> {
+        CommandData {
+            opcode: 0x22,
+            has_size_field: false,
+            payload: vec![],
+        }
+        .bytes()
+    }
+}
+
+struct OperatingFrequencyInquiry {}
+
+impl Command for OperatingFrequencyInquiry {
+    fn bytes(&self) -> Vec<u8> {
+        CommandData {
+            opcode: 0x23,
+            has_size_field: false,
+            payload: vec![],
+        }
+        .bytes()
+    }
+}
+
+struct NewBitRateSelection {
+    bit_rate: u16,
+    input_frequency: u16,
+    clock_type_count: u8,
+    multiplication_ratio_1: u8,
+    multiplication_ratio_2: u8,
+}
+
+impl Command for NewBitRateSelection {
+    fn bytes(&self) -> Vec<u8> {
+        CommandData {
+            opcode: 0x3F,
+            has_size_field: true,
+            payload: {
                 let mut payload = vec![];
                 // TODO: Check endianness
-                payload.extend_from_slice(&bit_rate.to_le_bytes());
-                payload.extend_from_slice(&input_frequency.to_le_bytes());
-                payload.push(*clock_type_count);
-                payload.push(*multiplication_ratio_1);
-                payload.push(*multiplication_ratio_2);
+                payload.extend_from_slice(&self.bit_rate.to_le_bytes());
+                payload.extend_from_slice(&self.input_frequency.to_le_bytes());
+                payload.push(self.clock_type_count);
+                payload.push(self.multiplication_ratio_1);
+                payload.push(self.multiplication_ratio_2);
                 payload
-            }
-            _ => vec![],
+            },
         }
+        .bytes()
+    }
+}
+
+struct ProgrammingErasureStateTransition {}
+
+impl Command for ProgrammingErasureStateTransition {
+    fn bytes(&self) -> Vec<u8> {
+        CommandData {
+            opcode: 0x40,
+            has_size_field: false,
+            payload: vec![],
+        }
+        .bytes()
     }
 }
 
@@ -119,7 +167,7 @@ mod tests {
 
         #[test]
         fn test_supported_device_inquiry() {
-            let cmd = CommandInquirySelection::SupportedDeviceInquiry;
+            let cmd = SupportedDeviceInquiry {};
 
             let bytes = cmd.bytes();
 
@@ -128,7 +176,7 @@ mod tests {
 
         #[test]
         fn test_device_selection() {
-            let cmd = CommandInquirySelection::DeviceSelection {
+            let cmd = DeviceSelection {
                 device_code: 0x12345678,
             };
 
@@ -139,7 +187,7 @@ mod tests {
 
         #[test]
         fn test_clock_mode_inquiry() {
-            let cmd = CommandInquirySelection::ClockModeInquiry;
+            let cmd = ClockModeInquiry {};
 
             let bytes = cmd.bytes();
 
@@ -148,7 +196,7 @@ mod tests {
 
         #[test]
         fn test_clock_mode_selection() {
-            let cmd = CommandInquirySelection::ClockModeSelection { mode: 0xAB };
+            let cmd = ClockModeSelection { mode: 0xAB };
 
             let bytes = cmd.bytes();
 
@@ -157,7 +205,7 @@ mod tests {
 
         #[test]
         fn test_multiplication_ratio_inquiry() {
-            let cmd = CommandInquirySelection::MultiplicationRatioInquiry;
+            let cmd = MultiplicationRatioInquiry {};
 
             let bytes = cmd.bytes();
 
@@ -166,7 +214,7 @@ mod tests {
 
         #[test]
         fn test_operating_frequency_inquiry() {
-            let cmd = CommandInquirySelection::OperatingFrequencyInquiry;
+            let cmd = OperatingFrequencyInquiry {};
 
             let bytes = cmd.bytes();
 
@@ -175,7 +223,7 @@ mod tests {
 
         #[test]
         fn test_new_bit_rate_selection() {
-            let cmd = CommandInquirySelection::NewBitRateSelection {
+            let cmd = NewBitRateSelection {
                 bit_rate: 0x00C0,
                 input_frequency: 0x04E2,
                 clock_type_count: 0x02,
@@ -193,7 +241,7 @@ mod tests {
 
         #[test]
         fn test_programming_erasure_state_transition() {
-            let cmd = CommandInquirySelection::ProgrammingErasureStateTransition;
+            let cmd = ProgrammingErasureStateTransition {};
 
             let bytes = cmd.bytes();
 
