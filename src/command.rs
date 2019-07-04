@@ -75,22 +75,25 @@ impl Command for SupportedDeviceInquiry {
     fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
         let mut b1 = [0u8; 1];
         p.read(&mut b1);
+        let b1 = b1[0];
 
-        assert_eq!(b1[0], 0x30);
+        assert_eq!(b1, 0x30);
 
-        let mut size = [0u8; 1];
-        p.read(&mut size);
+        let mut _size = [0u8; 1];
+        p.read(&mut _size);
 
         let mut device_count = [0u8; 1];
         p.read(&mut device_count);
+        let device_count = device_count[0];
 
         let mut use_le = true;
         let mut devices: Vec<SupportedDevice> = vec![];
-        for _ in 0..device_count[0] {
+        for _ in 0..device_count {
             let mut character_count = [0u8; 1];
             p.read(&mut character_count);
+            let character_count = character_count[0];
 
-            let series_name_character_count = character_count[0] - 4;
+            let series_name_character_count = character_count - 4;
 
             let mut device_code_bytes = [0u8; 4];
             p.read(&mut device_code_bytes);
@@ -138,14 +141,16 @@ impl Command for DeviceSelection {
     fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
         let mut b1 = [0u8; 1];
         p.read(&mut b1);
+        let b1 = b1[0];
 
-        match b1[0] {
+        match b1 {
             0x06 => Ok(()),
             0x90 => {
                 let mut b2 = [0u8; 1];
                 p.read(&mut b2);
+                let b2 = b2[0];
 
-                Err(b2[0])
+                Err(b2)
             }
             _ => panic!("Invalid response received"),
         }
@@ -190,14 +195,16 @@ impl Command for ClockModeSelection {
     fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
         let mut b1 = [0u8; 1];
         p.read(&mut b1);
+        let b1 = b1[0];
 
-        match b1[0] {
+        match b1 {
             0x06 => Ok(()),
             0x91 => {
                 let mut b2 = [0u8; 1];
                 p.read(&mut b2);
+                let b2 = b2[0];
 
-                Err(b2[0])
+                Err(b2)
             }
             _ => panic!("Invalid response received"),
         }
@@ -254,21 +261,24 @@ impl Command for MultiplicationRatioInquiry {
     fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
         let mut b1 = [0u8; 1];
         p.read(&mut b1);
+        let b1 = b1[0];
 
-        assert_eq!(b1[0], 0x32);
+        assert_eq!(b1, 0x32);
 
-        let mut size = [0u8; 1];
-        p.read(&mut size);
+        let mut _size = [0u8; 1];
+        p.read(&mut _size);
 
         let mut clock_type_count = [0u8; 1];
         p.read(&mut clock_type_count);
+        let clock_type_count = clock_type_count[0];
 
         let mut clock_types: Vec<Vec<MultiplicationRatio>> = vec![];
-        for _ in 0..clock_type_count[0] {
+        for _ in 0..clock_type_count {
             let mut multiplication_ratio_count = [0u8; 1];
             p.read(&mut multiplication_ratio_count);
+            let multiplication_ratio_count = multiplication_ratio_count[0];
 
-            let mut multiplication_ratios = vec![0u8; multiplication_ratio_count[0] as usize];
+            let mut multiplication_ratios = vec![0u8; multiplication_ratio_count as usize];
             p.read(&mut multiplication_ratios);
 
             clock_types.push(
@@ -313,17 +323,19 @@ impl Command for OperatingFrequencyInquiry {
     fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
         let mut b1 = [0u8; 1];
         p.read(&mut b1);
+        let b1 = b1[0];
 
-        assert_eq!(b1[0], 0x33);
+        assert_eq!(b1, 0x33);
 
-        let mut size = [0u8; 1];
-        p.read(&mut size);
+        let mut _size = [0u8; 1];
+        p.read(&mut _size);
 
         let mut clock_type_count = [0u8; 1];
         p.read(&mut clock_type_count);
+        let clock_type_count = clock_type_count[0];
 
         let mut clock_types: Vec<OperatingFrequencyRange> = vec![];
-        for _ in 0..clock_type_count[0] {
+        for _ in 0..clock_type_count {
             let mut minimum_frequency_bytes = [0u8; 2];
             p.read(&mut minimum_frequency_bytes);
 
@@ -400,15 +412,17 @@ impl Command for ProgrammingErasureStateTransition {
     fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
         let mut b1 = [0u8; 1];
         p.read(&mut b1);
+        let b1 = b1[0];
 
-        match b1[0] {
+        match b1 {
             0x26 => Ok(IDCodeProtectionStatus::Disabled),
             0x16 => Ok(IDCodeProtectionStatus::Enabled),
             0xC0 => {
                 let mut b2 = [0u8; 1];
                 p.read(&mut b2);
+                let b2 = b2[0];
 
-                assert_eq!(b2[0], 0x51);
+                assert_eq!(b2, 0x51);
 
                 Err(())
             }
