@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::io;
 use std::num::Wrapping;
 use std::str;
@@ -34,6 +35,7 @@ impl CommandData {
 
 pub trait Command {
     type Response;
+    type Error;
 
     fn bytes(&self) -> Vec<u8>;
 
@@ -44,7 +46,7 @@ pub trait Command {
     }
 
     // TODO: Consider correct return type for proper error handling
-    fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response;
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error>;
 }
 
 struct SupportedDeviceInquiry {}
@@ -62,6 +64,7 @@ struct SupportedDeviceInquiryResponse {
 
 impl Command for SupportedDeviceInquiry {
     type Response = SupportedDeviceInquiryResponse;
+    type Error = Infallible;
 
     fn bytes(&self) -> Vec<u8> {
         CommandData {
@@ -72,7 +75,7 @@ impl Command for SupportedDeviceInquiry {
         .bytes()
     }
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error> {
         let mut b1 = [0u8; 1];
         p.read(&mut b1);
         let b1 = b1[0];
@@ -117,7 +120,7 @@ impl Command for SupportedDeviceInquiry {
             });
         }
 
-        SupportedDeviceInquiryResponse { devices: devices }
+        Ok(SupportedDeviceInquiryResponse { devices: devices })
     }
 }
 
@@ -126,7 +129,8 @@ struct DeviceSelection {
 }
 
 impl Command for DeviceSelection {
-    type Response = Result<(), u8>;
+    type Response = ();
+    type Error = u8;
 
     fn bytes(&self) -> Vec<u8> {
         CommandData {
@@ -138,7 +142,7 @@ impl Command for DeviceSelection {
         .bytes()
     }
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error> {
         let mut b1 = [0u8; 1];
         p.read(&mut b1);
         let b1 = b1[0];
@@ -161,6 +165,7 @@ struct ClockModeInquiry {}
 
 impl Command for ClockModeInquiry {
     type Response = u8;
+    type Error = Infallible;
 
     fn bytes(&self) -> Vec<u8> {
         CommandData {
@@ -171,7 +176,7 @@ impl Command for ClockModeInquiry {
         .bytes()
     }
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error> {
         panic!("Datasheet unclear - test on real device");
     }
 }
@@ -181,7 +186,8 @@ struct ClockModeSelection {
 }
 
 impl Command for ClockModeSelection {
-    type Response = Result<(), u8>;
+    type Response = ();
+    type Error = u8;
 
     fn bytes(&self) -> Vec<u8> {
         CommandData {
@@ -192,7 +198,7 @@ impl Command for ClockModeSelection {
         .bytes()
     }
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error> {
         let mut b1 = [0u8; 1];
         p.read(&mut b1);
         let b1 = b1[0];
@@ -248,6 +254,7 @@ struct MultiplicationRatioInquiryResponse {
 
 impl Command for MultiplicationRatioInquiry {
     type Response = MultiplicationRatioInquiryResponse;
+    type Error = Infallible;
 
     fn bytes(&self) -> Vec<u8> {
         CommandData {
@@ -258,7 +265,7 @@ impl Command for MultiplicationRatioInquiry {
         .bytes()
     }
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error> {
         let mut b1 = [0u8; 1];
         p.read(&mut b1);
         let b1 = b1[0];
@@ -289,9 +296,9 @@ impl Command for MultiplicationRatioInquiry {
             );
         }
 
-        MultiplicationRatioInquiryResponse {
+        Ok(MultiplicationRatioInquiryResponse {
             clock_types: clock_types,
-        }
+        })
     }
 }
 
@@ -310,6 +317,7 @@ struct OperatingFrequencyInquiryResponse {
 
 impl Command for OperatingFrequencyInquiry {
     type Response = OperatingFrequencyInquiryResponse;
+    type Error = Infallible;
 
     fn bytes(&self) -> Vec<u8> {
         CommandData {
@@ -320,7 +328,7 @@ impl Command for OperatingFrequencyInquiry {
         .bytes()
     }
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error> {
         let mut b1 = [0u8; 1];
         p.read(&mut b1);
         let b1 = b1[0];
@@ -349,9 +357,9 @@ impl Command for OperatingFrequencyInquiry {
             });
         }
 
-        OperatingFrequencyInquiryResponse {
+        Ok(OperatingFrequencyInquiryResponse {
             clock_types: clock_types,
-        }
+        })
     }
 }
 
@@ -365,6 +373,7 @@ struct NewBitRateSelection {
 
 impl Command for NewBitRateSelection {
     type Response = ();
+    type Error = Infallible;
 
     fn bytes(&self) -> Vec<u8> {
         CommandData {
@@ -384,7 +393,7 @@ impl Command for NewBitRateSelection {
         .bytes()
     }
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error> {
         panic!("More complicated than tx/rx");
     }
 }
@@ -398,7 +407,8 @@ enum IDCodeProtectionStatus {
 }
 
 impl Command for ProgrammingErasureStateTransition {
-    type Response = Result<IDCodeProtectionStatus, ()>;
+    type Response = IDCodeProtectionStatus;
+    type Error = ();
 
     fn bytes(&self) -> Vec<u8> {
         CommandData {
@@ -409,7 +419,7 @@ impl Command for ProgrammingErasureStateTransition {
         .bytes()
     }
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Self::Response {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error> {
         let mut b1 = [0u8; 1];
         p.read(&mut b1);
         let b1 = b1[0];
@@ -466,7 +476,7 @@ mod tests {
 
             assert_eq!(
                 response,
-                SupportedDeviceInquiryResponse {
+                Ok(SupportedDeviceInquiryResponse {
                     devices: vec![
                         SupportedDevice {
                             device_code: 0x12345678,
@@ -477,7 +487,7 @@ mod tests {
                             series_name: "VWXYZ".to_string(),
                         },
                     ],
-                }
+                })
             );
             assert!(all_read(&mut p));
         }
@@ -586,7 +596,7 @@ mod tests {
 
             assert_eq!(
                 response,
-                MultiplicationRatioInquiryResponse {
+                Ok(MultiplicationRatioInquiryResponse {
                     clock_types: vec![
                         vec![
                             MultiplicationRatio::DivideBy(4),
@@ -603,7 +613,7 @@ mod tests {
                             MultiplicationRatio::MultiplyBy(32)
                         ],
                     ],
-                }
+                })
             );
             assert!(all_read(&mut p));
         }
@@ -629,7 +639,7 @@ mod tests {
 
             assert_eq!(
                 response,
-                OperatingFrequencyInquiryResponse {
+                Ok(OperatingFrequencyInquiryResponse {
                     clock_types: vec![
                         OperatingFrequencyRange {
                             minimum_frequency: 1000,
@@ -640,7 +650,7 @@ mod tests {
                             maximum_frequency: 10000
                         },
                     ],
-                }
+                })
             );
             assert!(all_read(&mut p));
         }
