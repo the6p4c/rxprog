@@ -11,19 +11,13 @@ enum ClockModeSelectionError {
     ClockMode,
 }
 
-impl Transmit for ClockModeSelection {
-    fn bytes(&self) -> Vec<u8> {
+impl TransmitCommandData for ClockModeSelection {
+    fn command_data(&self) -> CommandData {
         CommandData {
             opcode: 0x11,
             has_size_field: true,
             payload: vec![self.mode],
         }
-        .bytes()
-    }
-
-    fn tx<T: io::Write>(&self, p: &mut T) {
-        p.write(&self.bytes());
-        p.flush();
     }
 }
 
@@ -61,10 +55,10 @@ mod tests {
     #[test]
     fn test_tx() {
         let cmd = ClockModeSelection { mode: 0xAB };
+        let command_bytes = vec![0x11, 0x01, 0xAB, 0x43];
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
-        let bytes = cmd.bytes();
-
-        assert_eq!(bytes, vec![0x11, 0x01, 0xAB, 0x43]);
+        cmd.tx(&mut p);
     }
 
     #[test]

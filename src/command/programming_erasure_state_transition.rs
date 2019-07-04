@@ -9,19 +9,13 @@ enum IDCodeProtectionStatus {
     Enabled,
 }
 
-impl Transmit for ProgrammingErasureStateTransition {
-    fn bytes(&self) -> Vec<u8> {
+impl TransmitCommandData for ProgrammingErasureStateTransition {
+    fn command_data(&self) -> CommandData {
         CommandData {
             opcode: 0x40,
             has_size_field: false,
             payload: vec![],
         }
-        .bytes()
-    }
-
-    fn tx<T: io::Write>(&self, p: &mut T) {
-        p.write(&self.bytes());
-        p.flush();
     }
 }
 
@@ -58,10 +52,10 @@ mod tests {
     #[test]
     fn test_tx() {
         let cmd = ProgrammingErasureStateTransition {};
+        let command_bytes = vec![0x40];
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
-        let bytes = cmd.bytes();
-
-        assert_eq!(bytes, vec![0x40]);
+        cmd.tx(&mut p);
     }
 
     #[test]

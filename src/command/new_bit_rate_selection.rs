@@ -9,8 +9,8 @@ struct NewBitRateSelection {
     multiplication_ratio_2: MultiplicationRatio,
 }
 
-impl Transmit for NewBitRateSelection {
-    fn bytes(&self) -> Vec<u8> {
+impl TransmitCommandData for NewBitRateSelection {
+    fn command_data(&self) -> CommandData {
         CommandData {
             opcode: 0x3F,
             has_size_field: true,
@@ -25,12 +25,6 @@ impl Transmit for NewBitRateSelection {
                 payload
             },
         }
-        .bytes()
-    }
-
-    fn tx<T: io::Write>(&self, p: &mut T) {
-        p.write(&self.bytes());
-        p.flush();
     }
 }
 
@@ -56,12 +50,9 @@ mod tests {
             multiplication_ratio_1: MultiplicationRatio::MultiplyBy(4),
             multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
         };
+        let command_bytes = vec![0x3F, 0x07, 0xC0, 0x00, 0xE2, 0x04, 0x02, 0x04, 0xFE, 0x10];
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
-        let bytes = cmd.bytes();
-
-        assert_eq!(
-            bytes,
-            vec![0x3F, 0x07, 0xC0, 0x00, 0xE2, 0x04, 0x02, 0x04, 0xFE, 0x10]
-        );
+        cmd.tx(&mut p);
     }
 }

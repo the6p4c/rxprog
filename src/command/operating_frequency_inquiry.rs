@@ -14,19 +14,13 @@ struct OperatingFrequencyInquiryResponse {
     clock_types: Vec<OperatingFrequencyRange>,
 }
 
-impl Transmit for OperatingFrequencyInquiry {
-    fn bytes(&self) -> Vec<u8> {
+impl TransmitCommandData for OperatingFrequencyInquiry {
+    fn command_data(&self) -> CommandData {
         CommandData {
             opcode: 0x23,
             has_size_field: false,
             payload: vec![],
         }
-        .bytes()
-    }
-
-    fn tx<T: io::Write>(&self, p: &mut T) {
-        p.write(&self.bytes());
-        p.flush();
     }
 }
 
@@ -76,10 +70,10 @@ mod tests {
     #[test]
     fn test_tx() {
         let cmd = OperatingFrequencyInquiry {};
+        let command_bytes = vec![0x23];
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
-        let bytes = cmd.bytes();
-
-        assert_eq!(bytes, vec![0x23]);
+        cmd.tx(&mut p);
     }
 
     #[test]

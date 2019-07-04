@@ -12,6 +12,17 @@ mod operating_frequency_inquiry;
 mod programming_erasure_state_transition;
 mod supported_device_inquiry;
 
+trait Command {
+    type Response;
+    type Error;
+
+    fn execute<T: io::Read + io::Write>(&self, p: &mut T) -> Result<Self::Response, Self::Error>;
+}
+
+trait Transmit {
+    fn tx<T: io::Write>(&self, p: &mut T);
+}
+
 struct CommandData {
     opcode: u8,
     has_size_field: bool,
@@ -42,16 +53,15 @@ impl CommandData {
     }
 }
 
-trait Command {
-    type Response;
-    type Error;
-
-    fn execute<T: io::Read + io::Write>(&self, p: &mut T) -> Result<Self::Response, Self::Error>;
+trait TransmitCommandData {
+    fn command_data(&self) -> CommandData;
 }
 
-trait Transmit {
-    fn bytes(&self) -> Vec<u8>;
-    fn tx<T: io::Write>(&self, p: &mut T);
+impl<T: TransmitCommandData> Transmit for T {
+    fn tx<U: io::Write>(&self, p: &mut U) {
+        p.write(&self.command_data().bytes());
+        p.flush();
+    }
 }
 
 trait Receive {

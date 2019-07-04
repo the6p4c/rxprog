@@ -14,19 +14,13 @@ struct SupportedDeviceInquiryResponse {
     devices: Vec<SupportedDevice>,
 }
 
-impl Transmit for SupportedDeviceInquiry {
-    fn bytes(&self) -> Vec<u8> {
+impl TransmitCommandData for SupportedDeviceInquiry {
+    fn command_data(&self) -> CommandData {
         CommandData {
             opcode: 0x20,
             has_size_field: false,
             payload: vec![],
         }
-        .bytes()
-    }
-
-    fn tx<T: io::Write>(&self, p: &mut T) {
-        p.write(&self.bytes());
-        p.flush();
     }
 }
 
@@ -90,10 +84,10 @@ mod tests {
     #[test]
     fn test_tx() {
         let cmd = SupportedDeviceInquiry {};
+        let command_bytes = vec![0x20];
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
-        let bytes = cmd.bytes();
-
-        assert_eq!(bytes, vec![0x20]);
+        cmd.tx(&mut p);
     }
 
     #[test]

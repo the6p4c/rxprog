@@ -11,20 +11,14 @@ enum DeviceSelectionError {
     DeviceCode,
 }
 
-impl Transmit for DeviceSelection {
-    fn bytes(&self) -> Vec<u8> {
+impl TransmitCommandData for DeviceSelection {
+    fn command_data(&self) -> CommandData {
         CommandData {
             opcode: 0x10,
             has_size_field: true,
             // TODO: Check endianness
             payload: self.device_code.to_le_bytes().to_vec(),
         }
-        .bytes()
-    }
-
-    fn tx<T: io::Write>(&self, p: &mut T) {
-        p.write(&self.bytes());
-        p.flush();
     }
 }
 
@@ -64,10 +58,10 @@ mod tests {
         let cmd = DeviceSelection {
             device_code: 0x12345678,
         };
+        let command_bytes = vec![0x10, 0x04, 0x78, 0x56, 0x34, 0x12, 0xD8];
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
-        let bytes = cmd.bytes();
-
-        assert_eq!(bytes, vec![0x10, 0x04, 0x78, 0x56, 0x34, 0x12, 0xD8]);
+        cmd.tx(&mut p);
     }
 
     #[test]

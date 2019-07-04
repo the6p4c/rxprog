@@ -8,19 +8,13 @@ struct MultiplicationRatioInquiryResponse {
     clock_types: Vec<Vec<MultiplicationRatio>>,
 }
 
-impl Transmit for MultiplicationRatioInquiry {
-    fn bytes(&self) -> Vec<u8> {
+impl TransmitCommandData for MultiplicationRatioInquiry {
+    fn command_data(&self) -> CommandData {
         CommandData {
             opcode: 0x22,
             has_size_field: false,
             payload: vec![],
         }
-        .bytes()
-    }
-
-    fn tx<T: io::Write>(&self, p: &mut T) {
-        p.write(&self.bytes());
-        p.flush();
     }
 }
 
@@ -72,10 +66,10 @@ mod tests {
     #[test]
     fn test_tx() {
         let cmd = MultiplicationRatioInquiry {};
+        let command_bytes = vec![0x22];
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
-        let bytes = cmd.bytes();
-
-        assert_eq!(bytes, vec![0x22]);
+        cmd.tx(&mut p);
     }
 
     #[test]
