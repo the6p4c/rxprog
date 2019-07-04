@@ -4,15 +4,20 @@ use std::marker::PhantomData;
 use std::num::Wrapping;
 use std::str;
 
+mod boot_program_status_inquiry;
 mod clock_mode_inquiry;
 mod clock_mode_selection;
 mod device_selection;
+mod erasure_block_information_inquiry;
 mod multiplication_ratio_inquiry;
 mod new_bit_rate_selection;
 mod new_bit_rate_selection_confirmation;
 mod operating_frequency_inquiry;
 mod programming_erasure_state_transition;
+mod programming_size_inquiry;
 mod supported_device_inquiry;
+mod user_area_information_inquiry;
+mod user_boot_area_information_inquiry;
 
 trait Command {
     type Response;
