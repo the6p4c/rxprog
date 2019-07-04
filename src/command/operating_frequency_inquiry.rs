@@ -57,6 +57,10 @@ impl Receive for OperatingFrequencyInquiry {
             });
         }
 
+        // TODO: Check checksum
+        let mut checksum = [0u8; 1];
+        p.read_exact(&mut checksum)?;
+
         Ok(Ok(OperatingFrequencyInquiryResponse {
             clock_types: clock_types,
         }))
@@ -84,7 +88,10 @@ mod tests {
     fn test_rx() {
         let cmd = OperatingFrequencyInquiry {};
         let response_bytes = [
-            0x33, 0x09, 0x02, 0xE8, 0x03, 0xD0, 0x07, 0x64, 0x00, 0x10, 0x27,
+            0x33, 0x09, 0x02, // Header
+            0xE8, 0x03, 0xD0, 0x07, // Clock type 1
+            0x64, 0x00, 0x10, 0x27, // Clock type 2
+            0x65, // Checksum
         ];
         let mut p = mockstream::MockStream::new();
         p.push_bytes_to_read(&response_bytes);

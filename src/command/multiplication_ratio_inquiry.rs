@@ -53,6 +53,10 @@ impl Receive for MultiplicationRatioInquiry {
             );
         }
 
+        // TODO: Check checksum
+        let mut checksum = [0u8; 1];
+        p.read_exact(&mut checksum)?;
+
         Ok(Ok(MultiplicationRatioInquiryResponse {
             clock_types: clock_types,
         }))
@@ -83,6 +87,7 @@ mod tests {
             0x32, 0x0D, 0x02, // Header
             0x04, 0xFC, 0xFE, 0x02, 0x04, // Clock type 1
             0x06, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, // Clock type 2
+            0x76, // Checksum
         ];
         let mut p = mockstream::MockStream::new();
         p.push_bytes_to_read(&response_bytes);
