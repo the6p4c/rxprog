@@ -206,9 +206,37 @@ impl Command for ClockModeSelection {
 
 struct MultiplicationRatioInquiry {}
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum MultiplicationRatio {
+    DivideBy(u8),
+    MultiplyBy(u8),
+}
+
+impl From<u8> for MultiplicationRatio {
+    fn from(item: u8) -> Self {
+        let item_signed = i8::from_le_bytes([item]);
+        let ratio = item_signed.abs() as u8;
+
+        match item_signed {
+            x if x < 0 => MultiplicationRatio::DivideBy(ratio),
+            x if x > 0 => MultiplicationRatio::MultiplyBy(ratio),
+            _ => panic!("Multiplication ratio cannot be zero"),
+        }
+    }
+}
+
+impl From<MultiplicationRatio> for u8 {
+    fn from(item: MultiplicationRatio) -> Self {
+        match item {
+            MultiplicationRatio::DivideBy(ratio) => -(ratio as i8) as u8,
+            MultiplicationRatio::MultiplyBy(ratio) => ratio as u8,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 struct MultiplicationRatioInquiryResponse {
-    clock_types: Vec<Vec<u8>>,
+    clock_types: Vec<Vec<MultiplicationRatio>>,
 }
 
 impl Command for MultiplicationRatioInquiry {
@@ -235,7 +263,7 @@ impl Command for MultiplicationRatioInquiry {
         let mut clock_type_count = [0u8; 1];
         p.read(&mut clock_type_count);
 
-        let mut clock_types: Vec<Vec<u8>> = vec![];
+        let mut clock_types: Vec<Vec<MultiplicationRatio>> = vec![];
         for _ in 0..clock_type_count[0] {
             let mut multiplication_ratio_count = [0u8; 1];
             p.read(&mut multiplication_ratio_count);
@@ -243,7 +271,12 @@ impl Command for MultiplicationRatioInquiry {
             let mut multiplication_ratios = vec![0u8; multiplication_ratio_count[0] as usize];
             p.read(&mut multiplication_ratios);
 
-            clock_types.push(multiplication_ratios);
+            clock_types.push(
+                multiplication_ratios
+                    .iter()
+                    .map(|x| MultiplicationRatio::from(*x))
+                    .collect(),
+            );
         }
 
         MultiplicationRatioInquiryResponse {
@@ -314,8 +347,8 @@ struct NewBitRateSelection {
     bit_rate: u16,
     input_frequency: u16,
     clock_type_count: u8,
-    multiplication_ratio_1: u8,
-    multiplication_ratio_2: u8,
+    multiplication_ratio_1: MultiplicationRatio,
+    multiplication_ratio_2: MultiplicationRatio,
 }
 
 impl Command for NewBitRateSelection {
@@ -331,8 +364,8 @@ impl Command for NewBitRateSelection {
                 payload.extend_from_slice(&self.bit_rate.to_le_bytes());
                 payload.extend_from_slice(&self.input_frequency.to_le_bytes());
                 payload.push(self.clock_type_count);
-                payload.push(self.multiplication_ratio_1);
-                payload.push(self.multiplication_ratio_2);
+                payload.push(self.multiplication_ratio_1.into());
+                payload.push(self.multiplication_ratio_2.into());
                 payload
             },
         }
@@ -346,8 +379,14 @@ impl Command for NewBitRateSelection {
 
 struct ProgrammingErasureStateTransition {}
 
+#[derive(Debug, PartialEq)]
+enum IDCodeProtectionStatus {
+    Disabled,
+    Enabled,
+}
+
 impl Command for ProgrammingErasureStateTransition {
-    type Response = Result<u8, ()>;
+    type Response = Result<IDCodeProtectionStatus, ()>;
 
     fn bytes(&self) -> Vec<u8> {
         CommandData {
@@ -363,7 +402,8 @@ impl Command for ProgrammingErasureStateTransition {
         p.read(&mut b1);
 
         match b1[0] {
-            r @ 0x26 | r @ 0x16 => Ok(r),
+            0x26 => Ok(IDCodeProtectionStatus::Disabled),
+            0x16 => Ok(IDCodeProtectionStatus::Enabled),
             0xC0 => {
                 let mut b2 = [0u8; 1];
                 p.read(&mut b2);
@@ -402,8 +442,9 @@ mod tests {
         fn test_supported_device_inquiry_rx() {
             let cmd = SupportedDeviceInquiry {};
             let response_bytes = vec![
-                0x30, 0x13, 0x02, 0x08, 0x78, 0x56, 0x34, 0x12, 0x41, 0x42, 0x43, 0x44, 0x09, 0x89,
-                0xAB, 0xCD, 0xEF, 0x56, 0x57, 0x58, 0x59, 0x5A,
+                0x30, 0x13, 0x02, // Header
+                0x08, 0x78, 0x56, 0x34, 0x12, 0x41, 0x42, 0x43, 0x44, // Device 1
+                0x09, 0x89, 0xAB, 0xCD, 0xEF, 0x56, 0x57, 0x58, 0x59, 0x5A, // Device 2
             ];
             let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
@@ -521,8 +562,9 @@ mod tests {
         fn test_multiplication_ratio_inquiry_rx() {
             let cmd = MultiplicationRatioInquiry {};
             let response_bytes = vec![
-                0x32, 0x0D, 0x02, 0x04, 0xFC, 0xFE, 0x02, 0x04, 0x06, 0x01, 0x02, 0x04, 0x08, 0x10,
-                0x20,
+                0x32, 0x0D, 0x02, // Header
+                0x04, 0xFC, 0xFE, 0x02, 0x04, // Clock type 1
+                0x06, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, // Clock type 2
             ];
             let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
@@ -532,8 +574,20 @@ mod tests {
                 response,
                 MultiplicationRatioInquiryResponse {
                     clock_types: vec![
-                        vec![0xFC, 0xFE, 0x02, 0x04],
-                        vec![0x01, 0x02, 0x04, 0x08, 0x10, 0x20],
+                        vec![
+                            MultiplicationRatio::DivideBy(4),
+                            MultiplicationRatio::DivideBy(2),
+                            MultiplicationRatio::MultiplyBy(2),
+                            MultiplicationRatio::MultiplyBy(4)
+                        ],
+                        vec![
+                            MultiplicationRatio::MultiplyBy(1),
+                            MultiplicationRatio::MultiplyBy(2),
+                            MultiplicationRatio::MultiplyBy(4),
+                            MultiplicationRatio::MultiplyBy(8),
+                            MultiplicationRatio::MultiplyBy(16),
+                            MultiplicationRatio::MultiplyBy(32)
+                        ],
                     ],
                 }
             );
@@ -583,8 +637,8 @@ mod tests {
                 bit_rate: 0x00C0,
                 input_frequency: 0x04E2,
                 clock_type_count: 0x02,
-                multiplication_ratio_1: 0x04,
-                multiplication_ratio_2: 0xFE,
+                multiplication_ratio_1: MultiplicationRatio::MultiplyBy(4),
+                multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
             };
 
             let bytes = cmd.bytes();
@@ -612,7 +666,7 @@ mod tests {
 
             let response = cmd.rx(&mut p);
 
-            assert_eq!(response, Ok(0x26));
+            assert_eq!(response, Ok(IDCodeProtectionStatus::Disabled));
             assert!(all_read(&mut p));
         }
 
@@ -624,7 +678,7 @@ mod tests {
 
             let response = cmd.rx(&mut p);
 
-            assert_eq!(response, Ok(0x16));
+            assert_eq!(response, Ok(IDCodeProtectionStatus::Enabled));
             assert!(all_read(&mut p));
         }
 
