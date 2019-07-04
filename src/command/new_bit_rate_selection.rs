@@ -18,15 +18,9 @@ enum NewBitRateSelectionError {
     OperatingFrequency,
 }
 
-impl Command for NewBitRateSelection {
-    type Response = ();
-    type Error = NewBitRateSelectionError;
-
-    fn execute<T: io::Read + io::Write>(
-        &self,
-        p: &mut T,
-    ) -> io::Result<Result<Self::Response, Self::Error>> {
-        let cd = CommandData {
+impl TransmitCommandData for NewBitRateSelection {
+    fn command_data(&self) -> CommandData {
+        CommandData {
             opcode: 0x3F,
             has_size_field: true,
             payload: {
@@ -39,46 +33,34 @@ impl Command for NewBitRateSelection {
                 payload.push(self.multiplication_ratio_2.into());
                 payload
             },
-        };
-
-        p.write(&cd.bytes())?;
-        p.flush()?;
-
-        let mut b1 = [0u8; 1];
-        p.read_exact(&mut b1)?;
-        let b1 = b1[0];
-
-        match b1 {
-            0x06 => {
-                // TODO: Actually wait and set new bit rate
-
-                p.write(&[0x06])?;
-                p.flush()?;
-
-                let mut b2 = [0u8; 1];
-                p.read_exact(&mut b2)?;
-                let b2 = b2[0];
-
-                assert_eq!(b2, 0x06);
-
-                Ok(Ok(()))
-            }
-            0xBF => {
-                let mut error = [0u8; 1];
-                p.read_exact(&mut error)?;
-                let error = error[0];
-
-                match error {
-                    0x11 => Ok(Err(NewBitRateSelectionError::Checksum)),
-                    0x24 => Ok(Err(NewBitRateSelectionError::BitRateSelection)),
-                    0x25 => Ok(Err(NewBitRateSelectionError::InputFrequency)),
-                    0x26 => Ok(Err(NewBitRateSelectionError::MultiplicationRatio)),
-                    0x27 => Ok(Err(NewBitRateSelectionError::OperatingFrequency)),
-                    _ => panic!("Unknown error code"),
-                }
-            }
-            _ => panic!("Invalid response received"),
         }
+    }
+}
+
+impl Receive for NewBitRateSelection {
+    type Response = ();
+    type Error = NewBitRateSelectionError;
+
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
+        let reader: ResponseReader<_, SimpleResponse> = ResponseReader::new(
+            p,
+            ResponseFirstByte::Byte(0x06),
+            ErrorResponseFirstByte::Byte(0xBF),
+        );
+
+        let response = reader.read_response()?;
+
+        Ok(match response {
+            SimpleResponse::Response(_) => Ok(()),
+            SimpleResponse::Error(error) => match error {
+                0x11 => Err(NewBitRateSelectionError::Checksum),
+                0x24 => Err(NewBitRateSelectionError::BitRateSelection),
+                0x25 => Err(NewBitRateSelectionError::InputFrequency),
+                0x26 => Err(NewBitRateSelectionError::MultiplicationRatio),
+                0x27 => Err(NewBitRateSelectionError::OperatingFrequency),
+                _ => panic!("Unknown error code"),
+            },
+        })
     }
 }
 
@@ -87,33 +69,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_success() -> io::Result<()> {
-        let cmd = NewBitRateSelection {
-            bit_rate: 0x00C0,
-            input_frequency: 0x04E2,
-            clock_type_count: 0x02,
-            multiplication_ratio_1: MultiplicationRatio::MultiplyBy(4),
-            multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
-        };
-        let command_bytes = [
-            0x3F, 0x07, 0xC0, 0x00, 0xE2, 0x04, 0x02, 0x04, 0xFE, 0x10, // Command
-            0x06, // Confirmation
-        ];
-        let response_bytes = [0x06, 0x06];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
-
-        let response = cmd.execute(&mut p)?;
-
-        assert_eq!(p.pop_bytes_written(), command_bytes);
-        assert_eq!(response, Ok(()));
-        assert!(all_read(&mut p));
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_fail() -> io::Result<()> {
+    fn test_tx() -> io::Result<()> {
         let cmd = NewBitRateSelection {
             bit_rate: 0x00C0,
             input_frequency: 0x04E2,
@@ -122,16 +78,50 @@ mod tests {
             multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
         };
         let command_bytes = [0x3F, 0x07, 0xC0, 0x00, 0xE2, 0x04, 0x02, 0x04, 0xFE, 0x10];
-        let response_bytes = [0xBF, 0x25];
+        let mut p = mockstream::MockStream::new();
+
+        cmd.tx(&mut p)?;
+
+        assert_eq!(p.pop_bytes_written(), command_bytes);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_rx_success() {
+        let cmd = NewBitRateSelection {
+            bit_rate: 0x00C0,
+            input_frequency: 0x04E2,
+            clock_type_count: 0x02,
+            multiplication_ratio_1: MultiplicationRatio::MultiplyBy(4),
+            multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
+        };
+        let response_bytes = [0x06];
         let mut p = mockstream::MockStream::new();
         p.push_bytes_to_read(&response_bytes);
 
-        let response = cmd.execute(&mut p)?;
+        let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(p.pop_bytes_written(), command_bytes);
-        assert_eq!(response, Err(NewBitRateSelectionError::InputFrequency));
+        assert_eq!(response, Ok(()));
         assert!(all_read(&mut p));
+    }
 
-        Ok(())
+    #[test]
+    fn test_rx_fail() {
+        let cmd = NewBitRateSelection {
+            bit_rate: 0x00C0,
+            input_frequency: 0x04E2,
+            clock_type_count: 0x02,
+            multiplication_ratio_1: MultiplicationRatio::MultiplyBy(4),
+            multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
+        };
+        let response_bytes = [0xBF, 0x24];
+        let mut p = mockstream::MockStream::new();
+        p.push_bytes_to_read(&response_bytes);
+
+        let response = cmd.rx(&mut p).unwrap();
+
+        assert_eq!(response, Err(NewBitRateSelectionError::BitRateSelection));
+        assert!(all_read(&mut p));
     }
 }

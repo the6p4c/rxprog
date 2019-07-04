@@ -23,43 +23,40 @@ impl Receive for MultiplicationRatioInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let mut b1 = [0u8; 1];
-        p.read_exact(&mut b1)?;
-        let b1 = b1[0];
+        let reader: ResponseReader<_, SizedResponse> = ResponseReader::new(
+            p,
+            ResponseFirstByte::Byte(0x32),
+            ErrorResponseFirstByte::None,
+        );
 
-        assert_eq!(b1, 0x32);
+        let response = reader.read_response()?;
 
-        let mut _size = [0u8; 1];
-        p.read_exact(&mut _size)?;
+        Ok(match response {
+            SizedResponse::Response(data) => {
+                let clock_type_count = data[0];
 
-        let mut clock_type_count = [0u8; 1];
-        p.read_exact(&mut clock_type_count)?;
-        let clock_type_count = clock_type_count[0];
+                let mut clock_types: Vec<Vec<MultiplicationRatio>> = vec![];
+                let mut remaining_data = &data[1..];
+                for _ in 0..clock_type_count {
+                    let multiplication_ratio_count = remaining_data[0] as usize;
+                    let multiplication_ratios = &remaining_data[1..multiplication_ratio_count + 1];
 
-        let mut clock_types: Vec<Vec<MultiplicationRatio>> = vec![];
-        for _ in 0..clock_type_count {
-            let mut multiplication_ratio_count = [0u8; 1];
-            p.read_exact(&mut multiplication_ratio_count)?;
-            let multiplication_ratio_count = multiplication_ratio_count[0];
+                    clock_types.push(
+                        multiplication_ratios
+                            .iter()
+                            .map(|x| MultiplicationRatio::from(*x))
+                            .collect(),
+                    );
 
-            let mut multiplication_ratios = vec![0u8; multiplication_ratio_count as usize];
-            p.read_exact(&mut multiplication_ratios)?;
+                    remaining_data = &remaining_data[(1 + multiplication_ratio_count)..];
+                }
 
-            clock_types.push(
-                multiplication_ratios
-                    .iter()
-                    .map(|x| MultiplicationRatio::from(*x))
-                    .collect(),
-            );
-        }
-
-        // TODO: Check checksum
-        let mut checksum = [0u8; 1];
-        p.read_exact(&mut checksum)?;
-
-        Ok(Ok(MultiplicationRatioInquiryResponse {
-            clock_types: clock_types,
-        }))
+                Ok(MultiplicationRatioInquiryResponse {
+                    clock_types: clock_types,
+                })
+            }
+            SizedResponse::Error(_) => panic!("Error should not ocurr"),
+        })
     }
 }
 

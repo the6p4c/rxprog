@@ -29,51 +29,50 @@ impl Receive for SupportedDeviceInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let mut b1 = [0u8; 1];
-        p.read_exact(&mut b1)?;
-        let b1 = b1[0];
+        let reader: ResponseReader<_, SizedResponse> = ResponseReader::new(
+            p,
+            ResponseFirstByte::Byte(0x30),
+            ErrorResponseFirstByte::None,
+        );
 
-        assert_eq!(b1, 0x30);
+        let response = reader.read_response()?;
 
-        let mut _size = [0u8; 1];
-        p.read_exact(&mut _size)?;
+        Ok(match response {
+            SizedResponse::Response(data) => {
+                let device_count = data[0];
 
-        let mut device_count = [0u8; 1];
-        p.read_exact(&mut device_count)?;
-        let device_count = device_count[0];
+                let mut devices: Vec<SupportedDevice> = vec![];
+                let mut remaining_data = &data[1..];
+                for i in 0..device_count {
+                    let character_count = remaining_data[0] as usize;
+                    let series_name_character_count = character_count - 4;
 
-        let mut use_le = true;
-        let mut devices: Vec<SupportedDevice> = vec![];
-        for _ in 0..device_count {
-            let mut character_count = [0u8; 1];
-            p.read_exact(&mut character_count)?;
-            let character_count = character_count[0];
+                    let mut device_code_bytes = [0u8; 4];
+                    device_code_bytes.copy_from_slice(&remaining_data[1..=4]);
 
-            let series_name_character_count = character_count - 4;
+                    let use_le = i % 2 == 0;
+                    let device_code = if use_le {
+                        u32::from_le_bytes(device_code_bytes)
+                    } else {
+                        u32::from_be_bytes(device_code_bytes)
+                    };
 
-            let mut device_code_bytes = [0u8; 4];
-            p.read_exact(&mut device_code_bytes)?;
+                    devices.push(SupportedDevice {
+                        device_code: device_code,
+                        series_name: str::from_utf8(
+                            &remaining_data[5..(5 + series_name_character_count)],
+                        )
+                        .expect("Could not decode series name")
+                        .to_string(),
+                    });
 
-            let mut series_name_bytes = vec![0u8; series_name_character_count as usize];
-            p.read_exact(&mut series_name_bytes)?;
+                    remaining_data = &remaining_data[(1 + character_count)..];
+                }
 
-            let device_code = if use_le {
-                u32::from_le_bytes(device_code_bytes)
-            } else {
-                u32::from_be_bytes(device_code_bytes)
-            };
-
-            use_le = !use_le;
-
-            devices.push(SupportedDevice {
-                device_code: device_code,
-                series_name: str::from_utf8(&series_name_bytes)
-                    .expect("Could not decode series name")
-                    .to_string(),
-            });
-        }
-
-        Ok(Ok(SupportedDeviceInquiryResponse { devices: devices }))
+                Ok(SupportedDeviceInquiryResponse { devices: devices })
+            }
+            SizedResponse::Error(_) => panic!("Error should not ocurr"),
+        })
     }
 }
 
@@ -98,9 +97,10 @@ mod tests {
     fn test_rx() {
         let cmd = SupportedDeviceInquiry {};
         let response_bytes = [
-            0x30, 0x13, 0x02, // Header
+            0x30, 0x14, 0x02, // Header
             0x08, 0x78, 0x56, 0x34, 0x12, 0x41, 0x42, 0x43, 0x44, // Device 1
             0x09, 0x89, 0xAB, 0xCD, 0xEF, 0x56, 0x57, 0x58, 0x59, 0x5A, // Device 2
+            0xE3, // Checksum
         ];
         let mut p = mockstream::MockStream::new();
         p.push_bytes_to_read(&response_bytes);

@@ -29,41 +29,41 @@ impl Receive for OperatingFrequencyInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let mut b1 = [0u8; 1];
-        p.read_exact(&mut b1)?;
-        let b1 = b1[0];
+        let reader: ResponseReader<_, SizedResponse> = ResponseReader::new(
+            p,
+            ResponseFirstByte::Byte(0x33),
+            ErrorResponseFirstByte::None,
+        );
 
-        assert_eq!(b1, 0x33);
+        let response = reader.read_response()?;
 
-        let mut _size = [0u8; 1];
-        p.read_exact(&mut _size)?;
+        Ok(match response {
+            SizedResponse::Response(data) => {
+                let clock_type_count = data[0];
 
-        let mut clock_type_count = [0u8; 1];
-        p.read_exact(&mut clock_type_count)?;
-        let clock_type_count = clock_type_count[0];
+                let mut clock_types: Vec<OperatingFrequencyRange> = vec![];
+                let mut remaining_data = &data[1..];
+                for _ in 0..clock_type_count {
+                    let mut minimum_frequency_bytes = [0u8; 2];
+                    minimum_frequency_bytes.copy_from_slice(&remaining_data[0..=1]);
+                    let mut maximum_frequency_bytes = [0u8; 2];
+                    maximum_frequency_bytes.copy_from_slice(&remaining_data[2..=3]);
 
-        let mut clock_types: Vec<OperatingFrequencyRange> = vec![];
-        for _ in 0..clock_type_count {
-            let mut minimum_frequency_bytes = [0u8; 2];
-            p.read_exact(&mut minimum_frequency_bytes)?;
+                    clock_types.push(OperatingFrequencyRange {
+                        // TODO: Check endianness
+                        minimum_frequency: u16::from_le_bytes(minimum_frequency_bytes),
+                        maximum_frequency: u16::from_le_bytes(maximum_frequency_bytes),
+                    });
 
-            let mut maximum_frequency_bytes = [0u8; 2];
-            p.read_exact(&mut maximum_frequency_bytes)?;
+                    remaining_data = &remaining_data[4..];
+                }
 
-            clock_types.push(OperatingFrequencyRange {
-                // TODO: Check endianness
-                minimum_frequency: u16::from_le_bytes(minimum_frequency_bytes),
-                maximum_frequency: u16::from_le_bytes(maximum_frequency_bytes),
-            });
-        }
-
-        // TODO: Check checksum
-        let mut checksum = [0u8; 1];
-        p.read_exact(&mut checksum)?;
-
-        Ok(Ok(OperatingFrequencyInquiryResponse {
-            clock_types: clock_types,
-        }))
+                Ok(OperatingFrequencyInquiryResponse {
+                    clock_types: clock_types,
+                })
+            }
+            SizedResponse::Error(_) => panic!("Error should not ocurr"),
+        })
     }
 }
 

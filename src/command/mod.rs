@@ -1,5 +1,6 @@
 use std::convert::Infallible;
 use std::io;
+use std::marker::PhantomData;
 use std::num::Wrapping;
 use std::str;
 
@@ -8,6 +9,7 @@ mod clock_mode_selection;
 mod device_selection;
 mod multiplication_ratio_inquiry;
 mod new_bit_rate_selection;
+mod new_bit_rate_selection_confirmation;
 mod operating_frequency_inquiry;
 mod programming_erasure_state_transition;
 mod supported_device_inquiry;
@@ -86,6 +88,116 @@ impl<T: Transmit + Receive> Command for T {
     ) -> io::Result<Result<Self::Response, Self::Error>> {
         self.tx(p)?;
         Ok(self.rx(p)?)
+    }
+}
+
+enum SimpleResponse {
+    Response(u8),
+    Error(u8),
+}
+
+enum SizedResponse {
+    Response(Vec<u8>),
+    Error(u8),
+}
+
+enum ResponseFirstByte {
+    Byte(u8),
+    OneByteOf(Vec<u8>),
+}
+
+enum ErrorResponseFirstByte {
+    None,
+    Byte(u8),
+}
+
+struct ResponseReader<T: io::Read, U> {
+    p: T,
+    response_first_byte: ResponseFirstByte,
+    error_response_first_byte: ErrorResponseFirstByte,
+
+    phantom: PhantomData<U>,
+}
+
+impl<T: io::Read, U> ResponseReader<T, U> {
+    fn new(
+        p: T,
+        response_first_byte: ResponseFirstByte,
+        error_response_first_byte: ErrorResponseFirstByte,
+    ) -> ResponseReader<T, U> {
+        ResponseReader {
+            p: p,
+            response_first_byte: response_first_byte,
+            error_response_first_byte: error_response_first_byte,
+
+            phantom: PhantomData,
+        }
+    }
+
+    fn read_header(&mut self) -> io::Result<Result<u8, u8>> {
+        let mut first_byte = [0u8; 1];
+        self.p.read_exact(&mut first_byte)?;
+        let first_byte = first_byte[0];
+
+        if let ErrorResponseFirstByte::Byte(error_response_first_byte) =
+            self.error_response_first_byte
+        {
+            if first_byte == error_response_first_byte {
+                let mut error = [0u8; 1];
+                self.p.read_exact(&mut error)?;
+                let error = error[0];
+
+                return Ok(Err(error));
+            }
+        }
+
+        let is_valid_response_first_byte = match &self.response_first_byte {
+            ResponseFirstByte::Byte(response_first_byte) => first_byte == *response_first_byte,
+            ResponseFirstByte::OneByteOf(response_first_bytes) => response_first_bytes
+                .iter()
+                .find(|&&x| x == first_byte)
+                .is_some(),
+        };
+
+        assert!(
+            is_valid_response_first_byte,
+            "Response did not start with a valid byte"
+        );
+
+        Ok(Ok(first_byte))
+    }
+}
+
+impl<T: io::Read> ResponseReader<T, SimpleResponse> {
+    fn read_response(mut self) -> io::Result<SimpleResponse> {
+        match self.read_header()? {
+            Ok(first_byte) => Ok(SimpleResponse::Response(first_byte)),
+            Err(error) => Ok(SimpleResponse::Error(error)),
+        }
+    }
+}
+
+impl<T: io::Read> ResponseReader<T, SizedResponse> {
+    fn read_response(mut self) -> io::Result<SizedResponse> {
+        let header = self.read_header()?;
+
+        if let Err(error) = header {
+            return Ok(SizedResponse::Error(error));
+        }
+
+        let mut size = [0u8; 1];
+        self.p.read_exact(&mut size)?;
+        let size = size[0];
+
+        let mut data = vec![0u8; size as usize];
+        self.p.read_exact(&mut data)?;
+
+        // TODO: Check checksum
+        let mut _checksum = [0u8; 1];
+        self.p.read_exact(&mut _checksum)?;
+        let _checksum = _checksum[0];
+
+        Ok(SizedResponse::Response(data))
     }
 }
 

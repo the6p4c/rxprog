@@ -27,25 +27,22 @@ impl Receive for DeviceSelection {
     type Error = DeviceSelectionError;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let mut b1 = [0u8; 1];
-        p.read_exact(&mut b1)?;
-        let b1 = b1[0];
+        let reader: ResponseReader<_, SimpleResponse> = ResponseReader::new(
+            p,
+            ResponseFirstByte::Byte(0x06),
+            ErrorResponseFirstByte::Byte(0x90),
+        );
 
-        match b1 {
-            0x06 => Ok(Ok(())),
-            0x90 => {
-                let mut error = [0u8; 1];
-                p.read_exact(&mut error)?;
-                let error = error[0];
+        let response = reader.read_response()?;
 
-                Ok(Err(match error {
-                    0x11 => DeviceSelectionError::Checksum,
-                    0x21 => DeviceSelectionError::DeviceCode,
-                    _ => panic!("Unknown error code"),
-                }))
-            }
-            _ => panic!("Invalid response received"),
-        }
+        Ok(match response {
+            SimpleResponse::Response(_) => Ok(()),
+            SimpleResponse::Error(error) => Err(match error {
+                0x11 => DeviceSelectionError::Checksum,
+                0x21 => DeviceSelectionError::DeviceCode,
+                _ => panic!("Unknown error code"),
+            }),
+        })
     }
 }
 
