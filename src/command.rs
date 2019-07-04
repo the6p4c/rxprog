@@ -128,9 +128,15 @@ struct DeviceSelection {
     device_code: u32,
 }
 
+#[derive(Debug, PartialEq)]
+enum DeviceSelectionError {
+    Checksum,
+    DeviceCode,
+}
+
 impl Command for DeviceSelection {
     type Response = ();
-    type Error = u8;
+    type Error = DeviceSelectionError;
 
     fn bytes(&self) -> Vec<u8> {
         CommandData {
@@ -150,11 +156,15 @@ impl Command for DeviceSelection {
         match b1 {
             0x06 => Ok(()),
             0x90 => {
-                let mut b2 = [0u8; 1];
-                p.read(&mut b2);
-                let b2 = b2[0];
+                let mut error = [0u8; 1];
+                p.read(&mut error);
+                let error = error[0];
 
-                Err(b2)
+                Err(match error {
+                    0x11 => DeviceSelectionError::Checksum,
+                    0x21 => DeviceSelectionError::DeviceCode,
+                    _ => panic!("Unknown error code"),
+                })
             }
             _ => panic!("Invalid response received"),
         }
@@ -185,9 +195,15 @@ struct ClockModeSelection {
     mode: u8,
 }
 
+#[derive(Debug, PartialEq)]
+enum ClockModeSelectionError {
+    Checksum,
+    ClockMode,
+}
+
 impl Command for ClockModeSelection {
     type Response = ();
-    type Error = u8;
+    type Error = ClockModeSelectionError;
 
     fn bytes(&self) -> Vec<u8> {
         CommandData {
@@ -206,11 +222,15 @@ impl Command for ClockModeSelection {
         match b1 {
             0x06 => Ok(()),
             0x91 => {
-                let mut b2 = [0u8; 1];
-                p.read(&mut b2);
-                let b2 = b2[0];
+                let mut error = [0u8; 1];
+                p.read(&mut error);
+                let error = error[0];
 
-                Err(b2)
+                Err(match error {
+                    0x11 => ClockModeSelectionError::Checksum,
+                    0x21 => ClockModeSelectionError::ClockMode,
+                    _ => panic!("Unknown error code"),
+                })
             }
             _ => panic!("Invalid response received"),
         }
@@ -527,7 +547,7 @@ mod tests {
 
             let response = cmd.rx(&mut p);
 
-            assert_eq!(response, Err(0x21));
+            assert_eq!(response, Err(DeviceSelectionError::DeviceCode));
             assert!(all_read(&mut p));
         }
 
@@ -569,7 +589,7 @@ mod tests {
 
             let response = cmd.rx(&mut p);
 
-            assert_eq!(response, Err(0x21));
+            assert_eq!(response, Err(ClockModeSelectionError::ClockMode));
             assert!(all_read(&mut p));
         }
 
