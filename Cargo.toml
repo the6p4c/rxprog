@@ -7,4 +7,4 @@ edition = "2018"
 [dependencies]
 
 [dev-dependencies]
-mock-io = { git = "https://github.com/carllerche/mock-io", default-features = false, features = [] }
+mockstream = "0.0.3"

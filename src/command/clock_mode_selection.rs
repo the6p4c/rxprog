@@ -25,23 +25,23 @@ impl Receive for ClockModeSelection {
     type Response = ();
     type Error = ClockModeSelectionError;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
         let mut b1 = [0u8; 1];
-        p.read(&mut b1);
+        p.read_exact(&mut b1)?;
         let b1 = b1[0];
 
         match b1 {
-            0x06 => Ok(()),
+            0x06 => Ok(Ok(())),
             0x91 => {
                 let mut error = [0u8; 1];
-                p.read(&mut error);
+                p.read_exact(&mut error)?;
                 let error = error[0];
 
-                Err(match error {
+                Ok(Err(match error {
                     0x11 => ClockModeSelectionError::Checksum,
                     0x21 => ClockModeSelectionError::ClockMode,
                     _ => panic!("Unknown error code"),
-                })
+                }))
             }
             _ => panic!("Invalid response received"),
         }
@@ -53,21 +53,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() {
+    fn test_tx() -> io::Result<()> {
         let cmd = ClockModeSelection { mode: 0xAB };
-        let command_bytes = vec![0x11, 0x01, 0xAB, 0x43];
-        let mut p = mock_io::Builder::new().write(&command_bytes).build();
+        let command_bytes = [0x11, 0x01, 0xAB, 0x43];
+        let mut p = mockstream::MockStream::new();
 
-        cmd.tx(&mut p);
+        cmd.tx(&mut p)?;
+
+        assert_eq!(p.pop_bytes_written(), command_bytes);
+
+        Ok(())
     }
 
     #[test]
     fn test_rx_success() {
         let cmd = ClockModeSelection { mode: 0xAB };
-        let response_bytes = vec![0x06];
-        let mut p = mock_io::Builder::new().read(&response_bytes).build();
+        let response_bytes = [0x06];
+        let mut p = mockstream::MockStream::new();
+        p.push_bytes_to_read(&response_bytes);
 
-        let response = cmd.rx(&mut p);
+        let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Ok(()));
         assert!(all_read(&mut p));
@@ -76,10 +81,11 @@ mod tests {
     #[test]
     fn test_rx_fail() {
         let cmd = ClockModeSelection { mode: 0xAB };
-        let response_bytes = vec![0x91, 0x21];
-        let mut p = mock_io::Builder::new().read(&response_bytes).build();
+        let response_bytes = [0x91, 0x21];
+        let mut p = mockstream::MockStream::new();
+        p.push_bytes_to_read(&response_bytes);
 
-        let response = cmd.rx(&mut p);
+        let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Err(ClockModeSelectionError::ClockMode));
         assert!(all_read(&mut p));

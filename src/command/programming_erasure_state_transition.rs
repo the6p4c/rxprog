@@ -23,22 +23,22 @@ impl Receive for ProgrammingErasureStateTransition {
     type Response = IDCodeProtectionStatus;
     type Error = ();
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
         let mut b1 = [0u8; 1];
-        p.read(&mut b1);
+        p.read_exact(&mut b1)?;
         let b1 = b1[0];
 
         match b1 {
-            0x26 => Ok(IDCodeProtectionStatus::Disabled),
-            0x16 => Ok(IDCodeProtectionStatus::Enabled),
+            0x26 => Ok(Ok(IDCodeProtectionStatus::Disabled)),
+            0x16 => Ok(Ok(IDCodeProtectionStatus::Enabled)),
             0xC0 => {
                 let mut b2 = [0u8; 1];
-                p.read(&mut b2);
+                p.read_exact(&mut b2)?;
                 let b2 = b2[0];
 
                 assert_eq!(b2, 0x51);
 
-                Err(())
+                Ok(Err(()))
             }
             _ => panic!("Invalid response received"),
         }
@@ -50,21 +50,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() {
+    fn test_tx() -> io::Result<()> {
         let cmd = ProgrammingErasureStateTransition {};
-        let command_bytes = vec![0x40];
-        let mut p = mock_io::Builder::new().write(&command_bytes).build();
+        let command_bytes = [0x40];
+        let mut p = mockstream::MockStream::new();
 
-        cmd.tx(&mut p);
+        cmd.tx(&mut p)?;
+
+        assert_eq!(p.pop_bytes_written(), command_bytes);
+
+        Ok(())
     }
 
     #[test]
     fn test_rx_success_id_disabled() {
         let cmd = ProgrammingErasureStateTransition {};
-        let response_bytes = vec![0x26];
-        let mut p = mock_io::Builder::new().read(&response_bytes).build();
+        let response_bytes = [0x26];
+        let mut p = mockstream::MockStream::new();
+        p.push_bytes_to_read(&response_bytes);
 
-        let response = cmd.rx(&mut p);
+        let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Ok(IDCodeProtectionStatus::Disabled));
         assert!(all_read(&mut p));
@@ -74,9 +79,10 @@ mod tests {
     fn test_rx_success_id_enabled() {
         let cmd = ProgrammingErasureStateTransition {};
         let response_bytes = vec![0x16];
-        let mut p = mock_io::Builder::new().read(&response_bytes).build();
+        let mut p = mockstream::MockStream::new();
+        p.push_bytes_to_read(&response_bytes);
 
-        let response = cmd.rx(&mut p);
+        let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Ok(IDCodeProtectionStatus::Enabled));
         assert!(all_read(&mut p));
@@ -86,9 +92,10 @@ mod tests {
     fn test_rx_fail() {
         let cmd = ProgrammingErasureStateTransition {};
         let response_bytes = vec![0xC0, 0x51];
-        let mut p = mock_io::Builder::new().read(&response_bytes).build();
+        let mut p = mockstream::MockStream::new();
+        p.push_bytes_to_read(&response_bytes);
 
-        let response = cmd.rx(&mut p);
+        let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Err(()));
         assert!(all_read(&mut p));

@@ -16,11 +16,14 @@ trait Command {
     type Response;
     type Error;
 
-    fn execute<T: io::Read + io::Write>(&self, p: &mut T) -> Result<Self::Response, Self::Error>;
+    fn execute<T: io::Read + io::Write>(
+        &self,
+        p: &mut T,
+    ) -> io::Result<Result<Self::Response, Self::Error>>;
 }
 
 trait Transmit {
-    fn tx<T: io::Write>(&self, p: &mut T);
+    fn tx<T: io::Write>(&self, p: &mut T) -> io::Result<()>;
 }
 
 struct CommandData {
@@ -58,9 +61,11 @@ trait TransmitCommandData {
 }
 
 impl<T: TransmitCommandData> Transmit for T {
-    fn tx<U: io::Write>(&self, p: &mut U) {
-        p.write(&self.command_data().bytes());
-        p.flush();
+    fn tx<U: io::Write>(&self, p: &mut U) -> io::Result<()> {
+        p.write(&self.command_data().bytes())?;
+        p.flush()?;
+
+        Ok(())
     }
 }
 
@@ -68,16 +73,19 @@ trait Receive {
     type Response;
     type Error;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error>;
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>>;
 }
 
 impl<T: Transmit + Receive> Command for T {
     type Response = T::Response;
     type Error = T::Error;
 
-    fn execute<U: io::Read + io::Write>(&self, p: &mut U) -> Result<Self::Response, Self::Error> {
-        self.tx(p);
-        self.rx(p)
+    fn execute<U: io::Read + io::Write>(
+        &self,
+        p: &mut U,
+    ) -> io::Result<Result<Self::Response, Self::Error>> {
+        self.tx(p)?;
+        Ok(self.rx(p)?)
     }
 }
 

@@ -17,7 +17,7 @@ impl Receive for ClockModeInquiry {
     type Response = u8;
     type Error = Infallible;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error> {
+    fn rx<T: io::Read>(&self, _p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
         panic!("Datasheet unclear - test on real device");
     }
 }
@@ -27,11 +27,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() {
+    fn test_tx() -> io::Result<()> {
         let cmd = ClockModeInquiry {};
-        let command_bytes = vec![0x21];
-        let mut p = mock_io::Builder::new().write(&command_bytes).build();
+        let command_bytes = [0x21];
+        let mut p = mockstream::MockStream::new();
 
-        cmd.tx(&mut p);
+        cmd.tx(&mut p)?;
+
+        assert_eq!(p.pop_bytes_written(), command_bytes);
+
+        Ok(())
     }
 }

@@ -22,28 +22,28 @@ impl Receive for MultiplicationRatioInquiry {
     type Response = MultiplicationRatioInquiryResponse;
     type Error = Infallible;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response, Self::Error> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
         let mut b1 = [0u8; 1];
-        p.read(&mut b1);
+        p.read_exact(&mut b1)?;
         let b1 = b1[0];
 
         assert_eq!(b1, 0x32);
 
         let mut _size = [0u8; 1];
-        p.read(&mut _size);
+        p.read_exact(&mut _size)?;
 
         let mut clock_type_count = [0u8; 1];
-        p.read(&mut clock_type_count);
+        p.read_exact(&mut clock_type_count)?;
         let clock_type_count = clock_type_count[0];
 
         let mut clock_types: Vec<Vec<MultiplicationRatio>> = vec![];
         for _ in 0..clock_type_count {
             let mut multiplication_ratio_count = [0u8; 1];
-            p.read(&mut multiplication_ratio_count);
+            p.read_exact(&mut multiplication_ratio_count)?;
             let multiplication_ratio_count = multiplication_ratio_count[0];
 
             let mut multiplication_ratios = vec![0u8; multiplication_ratio_count as usize];
-            p.read(&mut multiplication_ratios);
+            p.read_exact(&mut multiplication_ratios)?;
 
             clock_types.push(
                 multiplication_ratios
@@ -53,9 +53,9 @@ impl Receive for MultiplicationRatioInquiry {
             );
         }
 
-        Ok(MultiplicationRatioInquiryResponse {
+        Ok(Ok(MultiplicationRatioInquiryResponse {
             clock_types: clock_types,
-        })
+        }))
     }
 }
 
@@ -64,25 +64,30 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() {
+    fn test_tx() -> io::Result<()> {
         let cmd = MultiplicationRatioInquiry {};
-        let command_bytes = vec![0x22];
-        let mut p = mock_io::Builder::new().write(&command_bytes).build();
+        let command_bytes = [0x22];
+        let mut p = mockstream::MockStream::new();
 
-        cmd.tx(&mut p);
+        cmd.tx(&mut p)?;
+
+        assert_eq!(p.pop_bytes_written(), command_bytes);
+
+        Ok(())
     }
 
     #[test]
     fn test_rx() {
         let cmd = MultiplicationRatioInquiry {};
-        let response_bytes = vec![
+        let response_bytes = [
             0x32, 0x0D, 0x02, // Header
             0x04, 0xFC, 0xFE, 0x02, 0x04, // Clock type 1
             0x06, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, // Clock type 2
         ];
-        let mut p = mock_io::Builder::new().read(&response_bytes).build();
+        let mut p = mockstream::MockStream::new();
+        p.push_bytes_to_read(&response_bytes);
 
-        let response = cmd.rx(&mut p);
+        let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(
             response,
