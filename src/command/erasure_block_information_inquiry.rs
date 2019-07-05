@@ -40,10 +40,12 @@ impl Receive for ErasureBlockInformationInquiry {
                 let mut areas: Vec<RangeInclusive<u32>> = vec![];
                 let mut remaining_data = &data[1..];
                 for _ in 0..area_count {
+                    let (area_data, new_remaining_data) = remaining_data.split_at(8);
+
                     let mut area_start_address_bytes = [0u8; 4];
-                    area_start_address_bytes.copy_from_slice(&remaining_data[0..=3]);
+                    area_start_address_bytes.copy_from_slice(&area_data[0..=3]);
                     let mut area_end_address_bytes = [0u8; 4];
-                    area_end_address_bytes.copy_from_slice(&remaining_data[4..=7]);
+                    area_end_address_bytes.copy_from_slice(&area_data[4..=7]);
 
                     // TODO: Check endianness
                     let area_start_address = u32::from_le_bytes(area_start_address_bytes);
@@ -52,7 +54,7 @@ impl Receive for ErasureBlockInformationInquiry {
                     // TODO: Check if inclusive
                     areas.push(area_start_address..=area_end_address);
 
-                    remaining_data = &remaining_data[8..];
+                    remaining_data = new_remaining_data;
                 }
 
                 Ok(ErasureBlockInformationInquiryResponse { areas: areas })

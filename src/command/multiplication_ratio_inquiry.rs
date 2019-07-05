@@ -39,8 +39,11 @@ impl Receive for MultiplicationRatioInquiry {
                 let mut clock_types: Vec<Vec<MultiplicationRatio>> = vec![];
                 let mut remaining_data = &data[1..];
                 for _ in 0..clock_type_count {
-                    let multiplication_ratio_count = remaining_data[0] as usize;
-                    let multiplication_ratios = &remaining_data[1..multiplication_ratio_count + 1];
+                    let (multiplication_ratio_count, multiplication_ratios) =
+                        remaining_data.split_first().unwrap();
+                    let multiplication_ratio_count = *multiplication_ratio_count as usize;
+                    let multiplication_ratios =
+                        &multiplication_ratios[..multiplication_ratio_count];
 
                     clock_types.push(
                         multiplication_ratios

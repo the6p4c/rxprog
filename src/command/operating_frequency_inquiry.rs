@@ -45,10 +45,12 @@ impl Receive for OperatingFrequencyInquiry {
                 let mut clock_types: Vec<OperatingFrequencyRange> = vec![];
                 let mut remaining_data = &data[1..];
                 for _ in 0..clock_type_count {
+                    let (clock_type_data, new_remaining_data) = remaining_data.split_at(4);
+
                     let mut minimum_frequency_bytes = [0u8; 2];
-                    minimum_frequency_bytes.copy_from_slice(&remaining_data[0..=1]);
+                    minimum_frequency_bytes.copy_from_slice(&clock_type_data[0..=1]);
                     let mut maximum_frequency_bytes = [0u8; 2];
-                    maximum_frequency_bytes.copy_from_slice(&remaining_data[2..=3]);
+                    maximum_frequency_bytes.copy_from_slice(&clock_type_data[2..=3]);
 
                     clock_types.push(OperatingFrequencyRange {
                         // TODO: Check endianness
@@ -56,7 +58,7 @@ impl Receive for OperatingFrequencyInquiry {
                         maximum_frequency: u16::from_le_bytes(maximum_frequency_bytes),
                     });
 
-                    remaining_data = &remaining_data[4..];
+                    remaining_data = &new_remaining_data;
                 }
 
                 Ok(OperatingFrequencyInquiryResponse {

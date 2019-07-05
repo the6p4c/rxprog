@@ -3,7 +3,7 @@ use std::io;
 
 #[derive(Debug)]
 pub struct DeviceSelection {
-    pub device_code: u32,
+    pub device_code: String,
 }
 
 #[derive(Debug, PartialEq)]
@@ -14,11 +14,13 @@ pub enum DeviceSelectionError {
 
 impl TransmitCommandData for DeviceSelection {
     fn command_data(&self) -> CommandData {
+        assert_eq!(self.device_code.len(), 4);
+
         CommandData {
             opcode: 0x10,
             has_size_field: true,
             // TODO: Check endianness
-            payload: self.device_code.to_le_bytes().to_vec(),
+            payload: self.device_code.bytes().collect(),
         }
     }
 }
@@ -54,9 +56,9 @@ mod tests {
     #[test]
     fn test_tx() -> io::Result<()> {
         let cmd = DeviceSelection {
-            device_code: 0x12345678,
+            device_code: "DEV1".to_string(),
         };
-        let command_bytes = [0x10, 0x04, 0x78, 0x56, 0x34, 0x12, 0xD8];
+        let command_bytes = [0x10, 0x04, 0x44, 0x45, 0x56, 0x31, 0xDC];
         let mut p = mockstream::MockStream::new();
 
         cmd.tx(&mut p)?;
@@ -69,7 +71,7 @@ mod tests {
     #[test]
     fn test_rx_success() {
         let cmd = DeviceSelection {
-            device_code: 0x12345678,
+            device_code: "DEV1".to_string(),
         };
         let response_bytes = [0x06];
         let mut p = mockstream::MockStream::new();
@@ -84,7 +86,7 @@ mod tests {
     #[test]
     fn test_rx_fail() {
         let cmd = DeviceSelection {
-            device_code: 0x12345678,
+            device_code: "DEV1".to_string(),
         };
         let response_bytes = [0x90, 0x21];
         let mut p = mockstream::MockStream::new();
