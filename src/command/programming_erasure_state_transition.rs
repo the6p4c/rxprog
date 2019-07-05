@@ -1,10 +1,11 @@
 use super::*;
 use std::io;
 
-struct ProgrammingErasureStateTransition {}
+#[derive(Debug)]
+pub struct ProgrammingErasureStateTransition {}
 
 #[derive(Debug, PartialEq)]
-enum IDCodeProtectionStatus {
+pub enum IDCodeProtectionStatus {
     Disabled,
     Enabled,
 }

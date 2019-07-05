@@ -1,7 +1,8 @@
 use super::*;
 use std::io;
 
-struct ProgrammingSizeInquiry {}
+#[derive(Debug)]
+pub struct ProgrammingSizeInquiry {}
 
 impl TransmitCommandData for ProgrammingSizeInquiry {
     fn command_data(&self) -> CommandData {
@@ -14,8 +15,8 @@ impl TransmitCommandData for ProgrammingSizeInquiry {
 }
 
 #[derive(Debug, PartialEq)]
-struct ProgrammingSizeInquiryResponse {
-    programming_size: u16,
+pub struct ProgrammingSizeInquiryResponse {
+    pub programming_size: u16,
 }
 
 impl Receive for ProgrammingSizeInquiry {

@@ -4,22 +4,22 @@ use std::marker::PhantomData;
 use std::num::Wrapping;
 use std::str;
 
-mod boot_program_status_inquiry;
-mod clock_mode_inquiry;
-mod clock_mode_selection;
-mod device_selection;
-mod erasure_block_information_inquiry;
-mod multiplication_ratio_inquiry;
-mod new_bit_rate_selection;
-mod new_bit_rate_selection_confirmation;
-mod operating_frequency_inquiry;
-mod programming_erasure_state_transition;
-mod programming_size_inquiry;
-mod supported_device_inquiry;
-mod user_area_information_inquiry;
-mod user_boot_area_information_inquiry;
+pub mod boot_program_status_inquiry;
+pub mod clock_mode_inquiry;
+pub mod clock_mode_selection;
+pub mod device_selection;
+pub mod erasure_block_information_inquiry;
+pub mod multiplication_ratio_inquiry;
+pub mod new_bit_rate_selection;
+pub mod new_bit_rate_selection_confirmation;
+pub mod operating_frequency_inquiry;
+pub mod programming_erasure_state_transition;
+pub mod programming_size_inquiry;
+pub mod supported_device_inquiry;
+pub mod user_area_information_inquiry;
+pub mod user_boot_area_information_inquiry;
 
-trait Command {
+pub trait Command {
     type Response;
     type Error;
 
@@ -29,7 +29,7 @@ trait Command {
     ) -> io::Result<Result<Self::Response, Self::Error>>;
 }
 
-trait Transmit {
+pub trait Transmit {
     fn tx<T: io::Write>(&self, p: &mut T) -> io::Result<()>;
 }
 
@@ -76,7 +76,7 @@ impl<T: TransmitCommandData> Transmit for T {
     }
 }
 
-trait Receive {
+pub trait Receive {
     type Response;
     type Error;
 
@@ -96,11 +96,13 @@ impl<T: Transmit + Receive> Command for T {
     }
 }
 
+#[derive(Debug)]
 enum SimpleResponse {
     Response(u8),
     Error(u8),
 }
 
+#[derive(Debug)]
 enum SizedResponse {
     Response(Vec<u8>),
     Error(u8),
@@ -207,7 +209,7 @@ impl<T: io::Read> ResponseReader<T, SizedResponse> {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum MultiplicationRatio {
+pub enum MultiplicationRatio {
     DivideBy(u8),
     MultiplyBy(u8),
 }

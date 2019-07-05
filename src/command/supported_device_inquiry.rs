@@ -1,17 +1,18 @@
 use super::*;
 use std::io;
 
-struct SupportedDeviceInquiry {}
+#[derive(Debug)]
+pub struct SupportedDeviceInquiry {}
 
 #[derive(Debug, PartialEq)]
-struct SupportedDevice {
-    device_code: u32,
-    series_name: String,
+pub struct SupportedDevice {
+    pub device_code: u32,
+    pub series_name: String,
 }
 
 #[derive(Debug, PartialEq)]
-struct SupportedDeviceInquiryResponse {
-    devices: Vec<SupportedDevice>,
+pub struct SupportedDeviceInquiryResponse {
+    pub devices: Vec<SupportedDevice>,
 }
 
 impl TransmitCommandData for SupportedDeviceInquiry {

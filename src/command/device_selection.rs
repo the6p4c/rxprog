@@ -1,12 +1,13 @@
 use super::*;
 use std::io;
 
-struct DeviceSelection {
-    device_code: u32,
+#[derive(Debug)]
+pub struct DeviceSelection {
+    pub device_code: u32,
 }
 
 #[derive(Debug, PartialEq)]
-enum DeviceSelectionError {
+pub enum DeviceSelectionError {
     Checksum,
     DeviceCode,
 }

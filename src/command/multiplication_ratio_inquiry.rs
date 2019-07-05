@@ -1,11 +1,12 @@
 use super::*;
 use std::io;
 
-struct MultiplicationRatioInquiry {}
+#[derive(Debug)]
+pub struct MultiplicationRatioInquiry {}
 
 #[derive(Debug, PartialEq)]
-struct MultiplicationRatioInquiryResponse {
-    clock_types: Vec<Vec<MultiplicationRatio>>,
+pub struct MultiplicationRatioInquiryResponse {
+    pub clock_types: Vec<Vec<MultiplicationRatio>>,
 }
 
 impl TransmitCommandData for MultiplicationRatioInquiry {

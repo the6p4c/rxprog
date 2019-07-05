@@ -1,7 +1,8 @@
 use super::*;
 use std::io;
 
-struct BootProgramStatusInquiry {}
+#[derive(Debug)]
+pub struct BootProgramStatusInquiry {}
 
 impl TransmitCommandData for BootProgramStatusInquiry {
     fn command_data(&self) -> CommandData {
@@ -14,7 +15,7 @@ impl TransmitCommandData for BootProgramStatusInquiry {
 }
 
 #[derive(Debug, PartialEq)]
-enum BootProgramStatus {
+pub enum BootProgramStatus {
     WaitingForDeviceSelection,
     WaitingForClockModeSelection,
     WaitingForBitRateSelection,
@@ -42,7 +43,7 @@ impl From<u8> for BootProgramStatus {
 }
 
 #[derive(Debug, PartialEq)]
-enum BootProgramError {
+pub enum BootProgramError {
     NoError,
     Checksum,
     IncorrectDeviceCode,
@@ -88,9 +89,9 @@ impl From<u8> for BootProgramError {
 }
 
 #[derive(Debug, PartialEq)]
-struct BootProgramStatusInquiryResponse {
-    status: BootProgramStatus,
-    error: BootProgramError,
+pub struct BootProgramStatusInquiryResponse {
+    pub status: BootProgramStatus,
+    pub error: BootProgramError,
 }
 
 impl Receive for BootProgramStatusInquiry {

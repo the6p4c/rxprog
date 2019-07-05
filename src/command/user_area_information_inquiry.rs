@@ -2,7 +2,8 @@ use super::*;
 use std::io;
 use std::ops::RangeInclusive;
 
-struct UserAreaInformationInquiry {}
+#[derive(Debug)]
+pub struct UserAreaInformationInquiry {}
 
 impl TransmitCommandData for UserAreaInformationInquiry {
     fn command_data(&self) -> CommandData {
@@ -15,8 +16,8 @@ impl TransmitCommandData for UserAreaInformationInquiry {
 }
 
 #[derive(Debug, PartialEq)]
-struct UserAreaInformationInquiryResponse {
-    areas: Vec<RangeInclusive<u32>>,
+pub struct UserAreaInformationInquiryResponse {
+    pub areas: Vec<RangeInclusive<u32>>,
 }
 
 impl Receive for UserAreaInformationInquiry {

@@ -1,16 +1,17 @@
 use super::*;
 use std::io;
 
-struct NewBitRateSelection {
-    bit_rate: u16,
-    input_frequency: u16,
-    clock_type_count: u8,
-    multiplication_ratio_1: MultiplicationRatio,
-    multiplication_ratio_2: MultiplicationRatio,
+#[derive(Debug)]
+pub struct NewBitRateSelection {
+    pub bit_rate: u16,
+    pub input_frequency: u16,
+    pub clock_type_count: u8,
+    pub multiplication_ratio_1: MultiplicationRatio,
+    pub multiplication_ratio_2: MultiplicationRatio,
 }
 
 #[derive(Debug, PartialEq)]
-enum NewBitRateSelectionError {
+pub enum NewBitRateSelectionError {
     Checksum,
     BitRateSelection,
     InputFrequency,

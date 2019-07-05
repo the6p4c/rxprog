@@ -1,7 +1,8 @@
 use super::*;
 use std::io;
 
-struct NewBitRateSelectionConfirmation {}
+#[derive(Debug)]
+pub struct NewBitRateSelectionConfirmation {}
 
 impl TransmitCommandData for NewBitRateSelectionConfirmation {
     fn command_data(&self) -> CommandData {

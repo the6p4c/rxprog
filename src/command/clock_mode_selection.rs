@@ -1,12 +1,13 @@
 use super::*;
 use std::io;
 
-struct ClockModeSelection {
-    mode: u8,
+#[derive(Debug)]
+pub struct ClockModeSelection {
+    pub mode: u8,
 }
 
 #[derive(Debug, PartialEq)]
-enum ClockModeSelectionError {
+pub enum ClockModeSelectionError {
     Checksum,
     ClockMode,
 }

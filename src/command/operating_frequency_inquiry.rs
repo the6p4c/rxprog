@@ -1,17 +1,18 @@
 use super::*;
 use std::io;
 
-struct OperatingFrequencyInquiry {}
+#[derive(Debug)]
+pub struct OperatingFrequencyInquiry {}
 
 #[derive(Debug, PartialEq)]
-struct OperatingFrequencyRange {
-    minimum_frequency: u16,
-    maximum_frequency: u16,
+pub struct OperatingFrequencyRange {
+    pub minimum_frequency: u16,
+    pub maximum_frequency: u16,
 }
 
 #[derive(Debug, PartialEq)]
-struct OperatingFrequencyInquiryResponse {
-    clock_types: Vec<OperatingFrequencyRange>,
+pub struct OperatingFrequencyInquiryResponse {
+    pub clock_types: Vec<OperatingFrequencyRange>,
 }
 
 impl TransmitCommandData for OperatingFrequencyInquiry {

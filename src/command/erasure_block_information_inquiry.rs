@@ -2,7 +2,8 @@ use super::*;
 use std::io;
 use std::ops::RangeInclusive;
 
-struct ErasureBlockInformationInquiry {}
+#[derive(Debug)]
+pub struct ErasureBlockInformationInquiry {}
 
 impl TransmitCommandData for ErasureBlockInformationInquiry {
     fn command_data(&self) -> CommandData {
@@ -15,8 +16,8 @@ impl TransmitCommandData for ErasureBlockInformationInquiry {
 }
 
 #[derive(Debug, PartialEq)]
-struct ErasureBlockInformationInquiryResponse {
-    areas: Vec<RangeInclusive<u32>>,
+pub struct ErasureBlockInformationInquiryResponse {
+    pub areas: Vec<RangeInclusive<u32>>,
 }
 
 impl Receive for ErasureBlockInformationInquiry {
