@@ -5,6 +5,8 @@ authors = ["The6P4C <watsonjcampbell@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+serialport = "3.3.0"
 
 [dev-dependencies]
 mockstream = "0.0.3"
+mock-io = { git = "https://github.com/carllerche/mock-io", default-features = false, features = [] }
