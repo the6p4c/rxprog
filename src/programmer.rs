@@ -2,7 +2,7 @@ use std::io;
 use std::thread;
 use std::time;
 
-use serialport::prelude::*;
+use crate::command;
 
 #[derive(Debug)]
 pub enum ConnectError {
@@ -21,12 +21,12 @@ impl Programmer {
     }
 
     pub fn connect(mut self) -> io::Result<Result<ProgrammerConnected, ConnectError>> {
-        self.p.clear(serialport::ClearBuffer::All);
+        self.p.clear(serialport::ClearBuffer::All)?;
 
         let mut attempts = 0;
         while self.p.bytes_to_read()? < 1 && attempts < 30 {
             self.p.write(&[0x00])?;
-            std::thread::sleep(time::Duration::from_millis(10));
+            thread::sleep(time::Duration::from_millis(10));
 
             attempts += 1;
         }
@@ -58,3 +58,12 @@ impl Programmer {
 }
 
 pub struct ProgrammerConnected(Programmer);
+
+impl ProgrammerConnected {
+    pub fn execute<T: command::Command>(
+        &mut self,
+        cmd: &T,
+    ) -> io::Result<Result<T::Response, T::Error>> {
+        cmd.execute(&mut self.0.p)
+    }
+}
