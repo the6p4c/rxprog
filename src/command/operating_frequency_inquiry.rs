@@ -53,9 +53,8 @@ impl Receive for OperatingFrequencyInquiry {
                     maximum_frequency_bytes.copy_from_slice(&clock_type_data[2..=3]);
 
                     clock_types.push(OperatingFrequencyRange {
-                        // TODO: Check endianness
-                        minimum_frequency: u16::from_le_bytes(minimum_frequency_bytes),
-                        maximum_frequency: u16::from_le_bytes(maximum_frequency_bytes),
+                        minimum_frequency: u16::from_be_bytes(minimum_frequency_bytes),
+                        maximum_frequency: u16::from_be_bytes(maximum_frequency_bytes),
                     });
 
                     remaining_data = &new_remaining_data;
@@ -92,8 +91,8 @@ mod tests {
         let cmd = OperatingFrequencyInquiry {};
         let response_bytes = [
             0x33, 0x09, 0x02, // Header
-            0xE8, 0x03, 0xD0, 0x07, // Clock type 1
-            0x64, 0x00, 0x10, 0x27, // Clock type 2
+            0x03, 0xE8, 0x07, 0xD0, // Clock type 1
+            0x00, 0x64, 0x27, 0x10, // Clock type 2
             0x65, // Checksum
         ];
         let mut p = mockstream::MockStream::new();

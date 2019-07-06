@@ -37,8 +37,7 @@ impl Receive for ProgrammingSizeInquiry {
                 let mut programming_size_bytes = [0u8; 2];
                 programming_size_bytes.copy_from_slice(&data);
 
-                // TODO: Check endianness
-                let programming_size = u16::from_le_bytes(programming_size_bytes);
+                let programming_size = u16::from_be_bytes(programming_size_bytes);
 
                 Ok(ProgrammingSizeInquiryResponse {
                     programming_size: programming_size,
@@ -69,7 +68,7 @@ mod tests {
     #[test]
     fn test_rx() {
         let cmd = ProgrammingSizeInquiry {};
-        let response_bytes = [0x37, 0x02, 0x34, 0x12, 0x81];
+        let response_bytes = [0x37, 0x02, 0x12, 0x34, 0x81];
         let mut p = mockstream::MockStream::new();
         p.push_bytes_to_read(&response_bytes);
 

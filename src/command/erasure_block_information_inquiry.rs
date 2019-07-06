@@ -47,9 +47,8 @@ impl Receive for ErasureBlockInformationInquiry {
                     let mut area_end_address_bytes = [0u8; 4];
                     area_end_address_bytes.copy_from_slice(&area_data[4..=7]);
 
-                    // TODO: Check endianness
-                    let area_start_address = u32::from_le_bytes(area_start_address_bytes);
-                    let area_end_address = u32::from_le_bytes(area_end_address_bytes);
+                    let area_start_address = u32::from_be_bytes(area_start_address_bytes);
+                    let area_end_address = u32::from_be_bytes(area_end_address_bytes);
 
                     // TODO: Check if inclusive
                     areas.push(area_start_address..=area_end_address);
@@ -86,8 +85,8 @@ mod tests {
         let cmd = ErasureBlockInformationInquiry {};
         let response_bytes = [
             0x34, 0x11, 0x02, // Header
-            0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x20, // Area 1
-            0x78, 0x56, 0x34, 0x12, 0xEF, 0xCD, 0xAB, 0x89, // Area 2
+            0x10, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, // Area 1
+            0x12, 0x34, 0x56, 0x78, 0x89, 0xAB, 0xCD, 0xEF, // Area 2
             0x85, // Checksum
         ];
         let mut p = mockstream::MockStream::new();

@@ -26,9 +26,8 @@ impl TransmitCommandData for NewBitRateSelection {
             has_size_field: true,
             payload: {
                 let mut payload = vec![];
-                // TODO: Check endianness
-                payload.extend_from_slice(&self.bit_rate.to_le_bytes());
-                payload.extend_from_slice(&self.input_frequency.to_le_bytes());
+                payload.extend_from_slice(&self.bit_rate.to_be_bytes());
+                payload.extend_from_slice(&self.input_frequency.to_be_bytes());
                 payload.push(self.clock_type_count);
                 payload.push(self.multiplication_ratio_1.into());
                 payload.push(self.multiplication_ratio_2.into());
@@ -78,7 +77,7 @@ mod tests {
             multiplication_ratio_1: MultiplicationRatio::MultiplyBy(4),
             multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
         };
-        let command_bytes = [0x3F, 0x07, 0xC0, 0x00, 0xE2, 0x04, 0x02, 0x04, 0xFE, 0x10];
+        let command_bytes = [0x3F, 0x07, 0x00, 0xC0, 0x04, 0xE2, 0x02, 0x04, 0xFE, 0x10];
         let mut p = mockstream::MockStream::new();
 
         cmd.tx(&mut p)?;

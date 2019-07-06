@@ -19,7 +19,6 @@ impl TransmitCommandData for DeviceSelection {
         CommandData {
             opcode: 0x10,
             has_size_field: true,
-            // TODO: Check endianness
             payload: self.device_code.bytes().collect(),
         }
     }
