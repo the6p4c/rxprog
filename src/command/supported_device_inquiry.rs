@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct SupportedDeviceInquiry {}
 
@@ -30,43 +32,35 @@ impl Receive for SupportedDeviceInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
-            p,
-            ResponseFirstByte::Byte(0x30),
-            ErrorResponseFirstByte::None,
-        );
+        let mut reader =
+            ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x30));
 
-        let response = reader.read_response()?;
+        let data = reader.read_response()?.data;
 
-        Ok(match response {
-            SizedResponse::Response(data, _) => {
-                let device_count = data[0];
+        let device_count = data[0];
 
-                let mut devices: Vec<SupportedDevice> = vec![];
-                let mut remaining_data = &data[1..];
-                for _ in 0..device_count {
-                    let (character_count, device_bytes) = remaining_data.split_first().unwrap();
-                    let character_count = *character_count as usize;
-                    let device_bytes = &device_bytes[..character_count];
+        let mut devices: Vec<SupportedDevice> = vec![];
+        let mut remaining_data = &data[1..];
+        for _ in 0..device_count {
+            let (character_count, device_bytes) = remaining_data.split_first().unwrap();
+            let character_count = *character_count as usize;
+            let device_bytes = &device_bytes[..character_count];
 
-                    let (device_code_bytes, series_name_bytes) = device_bytes.split_at(4);
+            let (device_code_bytes, series_name_bytes) = device_bytes.split_at(4);
 
-                    devices.push(SupportedDevice {
-                        device_code: str::from_utf8(device_code_bytes)
-                            .expect("Could not decode device code")
-                            .to_string(),
-                        series_name: str::from_utf8(series_name_bytes)
-                            .expect("Could not decode series name")
-                            .to_string(),
-                    });
+            devices.push(SupportedDevice {
+                device_code: str::from_utf8(device_code_bytes)
+                    .expect("Could not decode device code")
+                    .to_string(),
+                series_name: str::from_utf8(series_name_bytes)
+                    .expect("Could not decode series name")
+                    .to_string(),
+            });
 
-                    remaining_data = &remaining_data[(1 + character_count)..];
-                }
+            remaining_data = &remaining_data[(1 + character_count)..];
+        }
 
-                Ok(SupportedDeviceInquiryResponse { devices: devices })
-            }
-            SizedResponse::Error(_) => panic!("Error should not ocurr"),
-        })
+        Ok(Ok(SupportedDeviceInquiryResponse { devices: devices }))
     }
 }
 

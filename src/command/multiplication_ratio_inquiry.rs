@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct MultiplicationRatioInquiry {}
 
@@ -24,43 +26,34 @@ impl Receive for MultiplicationRatioInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
-            p,
-            ResponseFirstByte::Byte(0x32),
-            ErrorResponseFirstByte::None,
-        );
+        let mut reader =
+            ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x32));
 
-        let response = reader.read_response()?;
+        let data = reader.read_response()?.data;
 
-        Ok(match response {
-            SizedResponse::Response(data, _) => {
-                let clock_type_count = data[0];
+        let clock_type_count = data[0];
 
-                let mut clock_types: Vec<Vec<MultiplicationRatio>> = vec![];
-                let mut remaining_data = &data[1..];
-                for _ in 0..clock_type_count {
-                    let (multiplication_ratio_count, multiplication_ratios) =
-                        remaining_data.split_first().unwrap();
-                    let multiplication_ratio_count = *multiplication_ratio_count as usize;
-                    let multiplication_ratios =
-                        &multiplication_ratios[..multiplication_ratio_count];
+        let mut clock_types: Vec<Vec<MultiplicationRatio>> = vec![];
+        let mut remaining_data = &data[1..];
+        for _ in 0..clock_type_count {
+            let (multiplication_ratio_count, multiplication_ratios) =
+                remaining_data.split_first().unwrap();
+            let multiplication_ratio_count = *multiplication_ratio_count as usize;
+            let multiplication_ratios = &multiplication_ratios[..multiplication_ratio_count];
 
-                    clock_types.push(
-                        multiplication_ratios
-                            .iter()
-                            .map(|x| MultiplicationRatio::from(*x))
-                            .collect(),
-                    );
+            clock_types.push(
+                multiplication_ratios
+                    .iter()
+                    .map(|x| MultiplicationRatio::from(*x))
+                    .collect(),
+            );
 
-                    remaining_data = &remaining_data[(1 + multiplication_ratio_count)..];
-                }
+            remaining_data = &remaining_data[(1 + multiplication_ratio_count)..];
+        }
 
-                Ok(MultiplicationRatioInquiryResponse {
-                    clock_types: clock_types,
-                })
-            }
-            SizedResponse::Error(_) => panic!("Error should not ocurr"),
-        })
+        Ok(Ok(MultiplicationRatioInquiryResponse {
+            clock_types: clock_types,
+        }))
     }
 }
 

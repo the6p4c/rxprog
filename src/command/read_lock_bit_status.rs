@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct ReadLockBitStatus {
     pub area: MemoryArea,
@@ -45,23 +47,25 @@ impl Receive for ReadLockBitStatus {
     type Error = ReadLockBitStatusError;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SimpleResponse> = ResponseReader::new(
+        let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::OneByteOf(vec![0x00, 0x40]),
-            ErrorResponseFirstByte::Byte(0xF1),
+            ErrorFirstByte(0xF1),
         );
 
         let response = reader.read_response()?;
 
         Ok(match response {
-            SimpleResponse::Response(0x00) => Ok(ReadLockBitStatusResponse {
-                status: LockBitStatus::Locked,
-            }),
-            SimpleResponse::Response(0x40) => Ok(ReadLockBitStatusResponse {
-                status: LockBitStatus::Unlocked,
-            }),
-            SimpleResponse::Response(_) => panic!("Response with unknown first byte"),
-            SimpleResponse::Error(error) => Err(match error {
+            Ok(SimpleResponse { first_byte }) => match first_byte {
+                0x00 => Ok(ReadLockBitStatusResponse {
+                    status: LockBitStatus::Locked,
+                }),
+                0x40 => Ok(ReadLockBitStatusResponse {
+                    status: LockBitStatus::Unlocked,
+                }),
+                _ => panic!("Response with unknown first byte"),
+            },
+            Err(error_code) => Err(match error_code {
                 0x11 => ReadLockBitStatusError::Checksum,
                 0x2A => ReadLockBitStatusError::Address,
                 _ => panic!("Unknown error code"),

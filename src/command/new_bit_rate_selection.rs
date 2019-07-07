@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct NewBitRateSelection {
     pub bit_rate: u16,
@@ -42,17 +44,17 @@ impl Receive for NewBitRateSelection {
     type Error = NewBitRateSelectionError;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SimpleResponse> = ResponseReader::new(
+        let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
-            ErrorResponseFirstByte::Byte(0xBF),
+            ErrorFirstByte(0xBF),
         );
 
         let response = reader.read_response()?;
 
         Ok(match response {
-            SimpleResponse::Response(_) => Ok(()),
-            SimpleResponse::Error(error) => match error {
+            Ok(_) => Ok(()),
+            Err(error_code) => match error_code {
                 0x11 => Err(NewBitRateSelectionError::Checksum),
                 0x24 => Err(NewBitRateSelectionError::BitRateSelection),
                 0x25 => Err(NewBitRateSelectionError::InputFrequency),

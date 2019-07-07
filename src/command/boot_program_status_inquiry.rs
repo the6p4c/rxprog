@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct BootProgramStatusInquiry {}
 
@@ -99,26 +101,18 @@ impl Receive for BootProgramStatusInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
-            p,
-            ResponseFirstByte::Byte(0x5F),
-            ErrorResponseFirstByte::None,
-        );
+        let mut reader =
+            ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x5F));
 
-        let response = reader.read_response()?;
+        let data = reader.read_response()?.data;
 
-        Ok(match response {
-            SizedResponse::Response(data, _) => {
-                let status = BootProgramStatus::from(data[0]);
-                let error = BootProgramError::from(data[1]);
+        let status = BootProgramStatus::from(data[0]);
+        let error = BootProgramError::from(data[1]);
 
-                Ok(BootProgramStatusInquiryResponse {
-                    status: status,
-                    error: error,
-                })
-            }
-            SizedResponse::Error(_) => panic!("Error should not ocurr"),
-        })
+        Ok(Ok(BootProgramStatusInquiryResponse {
+            status: status,
+            error: error,
+        }))
     }
 }
 

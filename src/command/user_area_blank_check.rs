@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct UserAreaBlankCheck {}
 
@@ -30,17 +32,17 @@ impl Receive for UserAreaBlankCheck {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SimpleResponse> = ResponseReader::new(
+        let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
-            ErrorResponseFirstByte::Byte(0xCD),
+            ErrorFirstByte(0xCD),
         );
 
         let response = reader.read_response()?;
 
         let state = match response {
-            SimpleResponse::Response(_) => ErasureState::Blank,
-            SimpleResponse::Error(error) => match error {
+            Ok(_) => ErasureState::Blank,
+            Err(error_code) => match error_code {
                 0x52 => ErasureState::NotBlank,
                 _ => panic!("Unknown error code"),
             },

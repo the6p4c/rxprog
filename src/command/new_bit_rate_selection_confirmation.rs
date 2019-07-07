@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct NewBitRateSelectionConfirmation {}
 
@@ -19,13 +21,10 @@ impl Receive for NewBitRateSelectionConfirmation {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SimpleResponse> = ResponseReader::new(
-            p,
-            ResponseFirstByte::Byte(0x06),
-            ErrorResponseFirstByte::None,
-        );
+        let mut reader =
+            ResponseReader::<_, SimpleResponse, NoError>::new(p, ResponseFirstByte::Byte(0x06));
 
-        reader.read_response()?;
+        let _response = reader.read_response()?;
 
         Ok(Ok(()))
     }

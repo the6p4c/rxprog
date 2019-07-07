@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct ProgrammingSizeInquiry {}
 
@@ -24,27 +26,19 @@ impl Receive for ProgrammingSizeInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
-            p,
-            ResponseFirstByte::Byte(0x37),
-            ErrorResponseFirstByte::None,
-        );
+        let mut reader =
+            ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x37));
 
-        let response = reader.read_response()?;
+        let data = reader.read_response()?.data;
 
-        Ok(match response {
-            SizedResponse::Response(data, _) => {
-                let mut programming_size_bytes = [0u8; 2];
-                programming_size_bytes.copy_from_slice(&data);
+        let mut programming_size_bytes = [0u8; 2];
+        programming_size_bytes.copy_from_slice(&data);
 
-                let programming_size = u16::from_be_bytes(programming_size_bytes);
+        let programming_size = u16::from_be_bytes(programming_size_bytes);
 
-                Ok(ProgrammingSizeInquiryResponse {
-                    programming_size: programming_size,
-                })
-            }
-            SizedResponse::Error(_) => panic!("Error should not ocurr"),
-        })
+        Ok(Ok(ProgrammingSizeInquiryResponse {
+            programming_size: programming_size,
+        }))
     }
 }
 

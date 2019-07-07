@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct ClockModeInquiry {}
 
@@ -24,20 +26,14 @@ impl Receive for ClockModeInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
-            p,
-            ResponseFirstByte::Byte(0x31),
-            ErrorResponseFirstByte::None,
-        );
+        let mut reader =
+            ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x31));
 
-        let response = reader.read_response()?;
+        let data = reader.read_response()?.data;
 
-        Ok(match response {
-            SizedResponse::Response(data, _) => Ok(ClockModeInquiryResponse {
-                modes: data.to_vec(),
-            }),
-            SizedResponse::Error(_) => panic!("Error should not ocurr"),
-        })
+        Ok(Ok(ClockModeInquiryResponse {
+            modes: data.to_vec(),
+        }))
     }
 }
 

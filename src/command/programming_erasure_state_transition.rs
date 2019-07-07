@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct ProgrammingErasureStateTransition {}
 
@@ -25,20 +27,23 @@ impl Receive for ProgrammingErasureStateTransition {
     type Error = ();
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SimpleResponse> = ResponseReader::new(
+        let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::OneByteOf(vec![0x26, 0x16]),
-            ErrorResponseFirstByte::Byte(0xC0),
+            ErrorFirstByte(0xC0),
         );
 
         let response = reader.read_response()?;
 
         Ok(match response {
-            SimpleResponse::Response(0x26) => Ok(IDCodeProtectionStatus::Disabled),
-            SimpleResponse::Response(0x16) => Ok(IDCodeProtectionStatus::Enabled),
-            SimpleResponse::Response(_) => panic!("Response with unknown first byte"),
-            SimpleResponse::Error(0x51) => Err(()),
-            SimpleResponse::Error(_) => panic!("Error with unknown second byte"),
+            Ok(SimpleResponse { first_byte }) => match first_byte {
+                0x26 => Ok(IDCodeProtectionStatus::Disabled),
+                0x16 => Ok(IDCodeProtectionStatus::Enabled),
+                // TODO: Consider modifying ResponseReader so this can't happen
+                _ => panic!("Response with unknown first byte"),
+            },
+            Err(0x51) => Err(()),
+            Err(_) => panic!("Error with unknown second byte"),
         })
     }
 }

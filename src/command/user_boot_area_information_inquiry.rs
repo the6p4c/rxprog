@@ -2,6 +2,8 @@ use super::*;
 use std::io;
 use std::ops::RangeInclusive;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct UserBootAreaInformationInquiry {}
 
@@ -25,39 +27,31 @@ impl Receive for UserBootAreaInformationInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
-            p,
-            ResponseFirstByte::Byte(0x34),
-            ErrorResponseFirstByte::None,
-        );
+        let mut reader =
+            ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x34));
 
-        let response = reader.read_response()?;
+        let data = reader.read_response()?.data;
 
-        Ok(match response {
-            SizedResponse::Response(data, _) => {
-                let area_count = data[0];
+        let area_count = data[0];
 
-                let mut areas: Vec<RangeInclusive<u32>> = vec![];
-                let mut remaining_data = &data[1..];
-                for _ in 0..area_count {
-                    let mut area_start_address_bytes = [0u8; 4];
-                    area_start_address_bytes.copy_from_slice(&remaining_data[0..=3]);
-                    let mut area_end_address_bytes = [0u8; 4];
-                    area_end_address_bytes.copy_from_slice(&remaining_data[4..=7]);
+        let mut areas: Vec<RangeInclusive<u32>> = vec![];
+        let mut remaining_data = &data[1..];
+        for _ in 0..area_count {
+            let mut area_start_address_bytes = [0u8; 4];
+            area_start_address_bytes.copy_from_slice(&remaining_data[0..=3]);
+            let mut area_end_address_bytes = [0u8; 4];
+            area_end_address_bytes.copy_from_slice(&remaining_data[4..=7]);
 
-                    let area_start_address = u32::from_be_bytes(area_start_address_bytes);
-                    let area_end_address = u32::from_be_bytes(area_end_address_bytes);
+            let area_start_address = u32::from_be_bytes(area_start_address_bytes);
+            let area_end_address = u32::from_be_bytes(area_end_address_bytes);
 
-                    // TODO: Check if inclusive
-                    areas.push(area_start_address..=area_end_address);
+            // TODO: Check if inclusive
+            areas.push(area_start_address..=area_end_address);
 
-                    remaining_data = &remaining_data[8..];
-                }
+            remaining_data = &remaining_data[8..];
+        }
 
-                Ok(UserBootAreaInformationInquiryResponse { areas: areas })
-            }
-            SizedResponse::Error(_) => panic!("Error should not ocurr"),
-        })
+        Ok(Ok(UserBootAreaInformationInquiryResponse { areas: areas }))
     }
 }
 

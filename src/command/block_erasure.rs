@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct BlockErasure {
     pub block: u8,
@@ -28,17 +30,17 @@ impl Receive for BlockErasure {
     type Error = BlockErasureError;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SimpleResponse> = ResponseReader::new(
+        let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
-            ErrorResponseFirstByte::Byte(0xD8),
+            ErrorFirstByte(0xD8),
         );
 
         let response = reader.read_response()?;
 
         Ok(match response {
-            SimpleResponse::Response(_) => Ok(()),
-            SimpleResponse::Error(error) => Err(match error {
+            Ok(_) => Ok(()),
+            Err(error_code) => Err(match error_code {
                 0x11 => BlockErasureError::Checksum,
                 0x29 => BlockErasureError::BlockNumber,
                 0x51 => BlockErasureError::Erasure,

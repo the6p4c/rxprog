@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct MemoryRead {
     pub area: MemoryArea,
@@ -44,17 +46,17 @@ impl Receive for MemoryRead {
     type Error = MemoryReadError;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse<u32>> = ResponseReader::new(
+        let mut reader = ResponseReader::<_, SizedResponse<u32>, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x52),
-            ErrorResponseFirstByte::Byte(0xD2),
+            ErrorFirstByte(0xD2),
         );
 
         let response = reader.read_response()?;
 
         Ok(match response {
-            SizedResponse::Response(data, _) => Ok(MemoryReadResponse { data: data }),
-            SizedResponse::Error(error) => Err(match error {
+            Ok(SizedResponse { data, .. }) => Ok(MemoryReadResponse { data: data }),
+            Err(error_code) => Err(match error_code {
                 0x11 => MemoryReadError::Checksum,
                 0x2A => MemoryReadError::Address,
                 0x2B => MemoryReadError::DataSize,

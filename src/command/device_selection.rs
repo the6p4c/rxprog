@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct DeviceSelection {
     pub device_code: String,
@@ -29,17 +31,17 @@ impl Receive for DeviceSelection {
     type Error = DeviceSelectionError;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SimpleResponse> = ResponseReader::new(
+        let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
-            ErrorResponseFirstByte::Byte(0x90),
+            ErrorFirstByte(0x90),
         );
 
         let response = reader.read_response()?;
 
         Ok(match response {
-            SimpleResponse::Response(_) => Ok(()),
-            SimpleResponse::Error(error) => Err(match error {
+            Ok(_) => Ok(()),
+            Err(error_code) => Err(match error_code {
                 0x11 => DeviceSelectionError::Checksum,
                 0x21 => DeviceSelectionError::DeviceCode,
                 _ => panic!("Unknown error code"),

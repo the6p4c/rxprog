@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 #[derive(Debug)]
 pub struct OperatingFrequencyInquiry {}
 
@@ -30,42 +32,34 @@ impl Receive for OperatingFrequencyInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
-            p,
-            ResponseFirstByte::Byte(0x33),
-            ErrorResponseFirstByte::None,
-        );
+        let mut reader =
+            ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x33));
 
-        let response = reader.read_response()?;
+        let data = reader.read_response()?.data;
 
-        Ok(match response {
-            SizedResponse::Response(data, _) => {
-                let clock_type_count = data[0];
+        let clock_type_count = data[0];
 
-                let mut clock_types: Vec<OperatingFrequencyRange> = vec![];
-                let mut remaining_data = &data[1..];
-                for _ in 0..clock_type_count {
-                    let (clock_type_data, new_remaining_data) = remaining_data.split_at(4);
+        let mut clock_types: Vec<OperatingFrequencyRange> = vec![];
+        let mut remaining_data = &data[1..];
+        for _ in 0..clock_type_count {
+            let (clock_type_data, new_remaining_data) = remaining_data.split_at(4);
 
-                    let mut minimum_frequency_bytes = [0u8; 2];
-                    minimum_frequency_bytes.copy_from_slice(&clock_type_data[0..=1]);
-                    let mut maximum_frequency_bytes = [0u8; 2];
-                    maximum_frequency_bytes.copy_from_slice(&clock_type_data[2..=3]);
+            let mut minimum_frequency_bytes = [0u8; 2];
+            minimum_frequency_bytes.copy_from_slice(&clock_type_data[0..=1]);
+            let mut maximum_frequency_bytes = [0u8; 2];
+            maximum_frequency_bytes.copy_from_slice(&clock_type_data[2..=3]);
 
-                    clock_types.push(OperatingFrequencyRange {
-                        minimum_frequency: u16::from_be_bytes(minimum_frequency_bytes),
-                        maximum_frequency: u16::from_be_bytes(maximum_frequency_bytes),
-                    });
+            clock_types.push(OperatingFrequencyRange {
+                minimum_frequency: u16::from_be_bytes(minimum_frequency_bytes),
+                maximum_frequency: u16::from_be_bytes(maximum_frequency_bytes),
+            });
 
-                    remaining_data = &new_remaining_data;
-                }
+            remaining_data = &new_remaining_data;
+        }
 
-                Ok(OperatingFrequencyInquiryResponse {
-                    clock_types: clock_types,
-                })
-            }
-            SizedResponse::Error(_) => panic!("Error should not ocurr"),
-        })
+        Ok(Ok(OperatingFrequencyInquiryResponse {
+            clock_types: clock_types,
+        }))
     }
 }
 

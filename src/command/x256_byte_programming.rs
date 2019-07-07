@@ -1,6 +1,8 @@
 use super::*;
 use std::io;
 
+use super::reader::*;
+
 // Can't derive Debug, because there's no Debug impl for a length 256 array
 pub struct X256ByteProgramming {
     pub address: u32,
@@ -34,17 +36,17 @@ impl Receive for X256ByteProgramming {
     type Error = X256ByteProgrammingError;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SimpleResponse> = ResponseReader::new(
+        let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
-            ErrorResponseFirstByte::Byte(0xD0),
+            ErrorFirstByte(0xD0),
         );
 
         let response = reader.read_response()?;
 
         Ok(match response {
-            SimpleResponse::Response(_) => Ok(()),
-            SimpleResponse::Error(error) => Err(match error {
+            Ok(_) => Ok(()),
+            Err(error_code) => Err(match error_code {
                 0x11 => X256ByteProgrammingError::Checksum,
                 0x2A => X256ByteProgrammingError::Address,
                 0x53 => X256ByteProgrammingError::Programming,
