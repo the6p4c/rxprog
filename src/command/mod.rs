@@ -4,20 +4,34 @@ use std::marker::PhantomData;
 use std::num::Wrapping;
 use std::str;
 
+pub mod block_erasure;
 pub mod boot_program_status_inquiry;
 pub mod clock_mode_inquiry;
 pub mod clock_mode_selection;
 pub mod device_selection;
 pub mod erasure_block_information_inquiry;
+pub mod erasure_selection;
+pub mod lock_bit_disable;
+pub mod lock_bit_enable;
+pub mod lock_bit_program;
+pub mod memory_read;
 pub mod multiplication_ratio_inquiry;
 pub mod new_bit_rate_selection;
 pub mod new_bit_rate_selection_confirmation;
 pub mod operating_frequency_inquiry;
 pub mod programming_erasure_state_transition;
 pub mod programming_size_inquiry;
+pub mod read_lock_bit_status;
 pub mod supported_device_inquiry;
+pub mod user_area_blank_check;
+pub mod user_area_checksum;
 pub mod user_area_information_inquiry;
+pub mod user_boot_area_blank_check;
+pub mod user_boot_area_checksum;
 pub mod user_boot_area_information_inquiry;
+pub mod user_boot_area_programming_selection;
+pub mod user_data_area_programming_selection;
+pub mod x256_byte_programming;
 
 pub trait Command {
     type Response;
@@ -102,9 +116,33 @@ enum SimpleResponse {
     Error(u8),
 }
 
+trait ResponseSize {
+    fn read_size<T: io::Read>(p: &mut T) -> io::Result<usize>;
+}
+
+impl ResponseSize for u8 {
+    fn read_size<T: io::Read>(p: &mut T) -> io::Result<usize> {
+        let mut size = [0u8; 1];
+        p.read_exact(&mut size)?;
+        let size = size[0];
+
+        Ok(size as usize)
+    }
+}
+
+impl ResponseSize for u32 {
+    fn read_size<U: io::Read>(p: &mut U) -> io::Result<usize> {
+        let mut size = [0u8; 4];
+        p.read_exact(&mut size)?;
+        let size = u32::from_be_bytes(size);
+
+        Ok(size as usize)
+    }
+}
+
 #[derive(Debug)]
-enum SizedResponse {
-    Response(Vec<u8>),
+enum SizedResponse<T> {
+    Response(Vec<u8>, PhantomData<T>),
     Error(u8),
 }
 
@@ -184,19 +222,17 @@ impl<T: io::Read> ResponseReader<T, SimpleResponse> {
     }
 }
 
-impl<T: io::Read> ResponseReader<T, SizedResponse> {
-    fn read_response(mut self) -> io::Result<SizedResponse> {
+impl<T: io::Read, U: ResponseSize> ResponseReader<T, SizedResponse<U>> {
+    fn read_response(mut self) -> io::Result<SizedResponse<U>> {
         let header = self.read_header()?;
 
         if let Err(error) = header {
             return Ok(SizedResponse::Error(error));
         }
 
-        let mut size = [0u8; 1];
-        self.p.read_exact(&mut size)?;
-        let size = size[0];
+        let size = U::read_size(&mut self.p)?;
 
-        let mut data = vec![0u8; size as usize];
+        let mut data = vec![0u8; size];
         self.p.read_exact(&mut data)?;
 
         // TODO: Check checksum
@@ -204,7 +240,7 @@ impl<T: io::Read> ResponseReader<T, SizedResponse> {
         self.p.read_exact(&mut _checksum)?;
         let _checksum = _checksum[0];
 
-        Ok(SizedResponse::Response(data))
+        Ok(SizedResponse::Response(data, PhantomData))
     }
 }
 
@@ -234,6 +270,18 @@ impl From<MultiplicationRatio> for u8 {
             MultiplicationRatio::MultiplyBy(ratio) => ratio as u8,
         }
     }
+}
+
+#[derive(Debug)]
+pub enum MemoryArea {
+    UserBootArea,
+    UserArea,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum LockBitStatus {
+    Locked,
+    Unlocked,
 }
 
 fn all_read<T: io::Read>(p: &mut T) -> bool {

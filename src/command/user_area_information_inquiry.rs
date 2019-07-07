@@ -25,7 +25,7 @@ impl Receive for UserAreaInformationInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse> = ResponseReader::new(
+        let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
             p,
             ResponseFirstByte::Byte(0x34),
             ErrorResponseFirstByte::None,
@@ -34,7 +34,7 @@ impl Receive for UserAreaInformationInquiry {
         let response = reader.read_response()?;
 
         Ok(match response {
-            SizedResponse::Response(data) => {
+            SizedResponse::Response(data, _) => {
                 let area_count = data[0];
 
                 let mut areas: Vec<RangeInclusive<u32>> = vec![];

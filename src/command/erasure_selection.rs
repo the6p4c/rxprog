@@ -2,41 +2,34 @@ use super::*;
 use std::io;
 
 #[derive(Debug)]
-pub struct ClockModeInquiry {}
+pub struct ErasureSelection {}
 
-impl TransmitCommandData for ClockModeInquiry {
+impl TransmitCommandData for ErasureSelection {
     fn command_data(&self) -> CommandData {
         CommandData {
-            opcode: 0x21,
+            opcode: 0x48,
             has_size_field: false,
             payload: vec![],
         }
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub struct ClockModeInquiryResponse {
-    pub modes: Vec<u8>,
-}
-
-impl Receive for ClockModeInquiry {
-    type Response = ClockModeInquiryResponse;
+impl Receive for ErasureSelection {
+    type Response = ();
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
+        let reader: ResponseReader<_, SimpleResponse> = ResponseReader::new(
             p,
-            ResponseFirstByte::Byte(0x31),
+            ResponseFirstByte::Byte(0x06),
             ErrorResponseFirstByte::None,
         );
 
         let response = reader.read_response()?;
 
         Ok(match response {
-            SizedResponse::Response(data, _) => Ok(ClockModeInquiryResponse {
-                modes: data.to_vec(),
-            }),
-            SizedResponse::Error(_) => panic!("Error should not ocurr"),
+            SimpleResponse::Response(_) => Ok(()),
+            SimpleResponse::Error(_) => panic!("Error should not ocurr"),
         })
     }
 }
@@ -47,8 +40,8 @@ mod tests {
 
     #[test]
     fn test_tx() -> io::Result<()> {
-        let cmd = ClockModeInquiry {};
-        let command_bytes = [0x21];
+        let cmd = ErasureSelection {};
+        let command_bytes = [0x48];
         let mut p = mockstream::MockStream::new();
 
         cmd.tx(&mut p)?;
@@ -60,19 +53,14 @@ mod tests {
 
     #[test]
     fn test_rx() {
-        let cmd = ClockModeInquiry {};
-        let response_bytes = [0x31, 0x02, 0x00, 0x01, 0xCC];
+        let cmd = ErasureSelection {};
+        let response_bytes = [0x06];
         let mut p = mockstream::MockStream::new();
         p.push_bytes_to_read(&response_bytes);
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(
-            response,
-            Ok(ClockModeInquiryResponse {
-                modes: vec![0x00, 0x01],
-            })
-        );
+        assert_eq!(response, Ok(()));
         assert!(all_read(&mut p));
     }
 }

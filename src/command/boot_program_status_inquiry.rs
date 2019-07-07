@@ -99,7 +99,7 @@ impl Receive for BootProgramStatusInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse> = ResponseReader::new(
+        let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
             p,
             ResponseFirstByte::Byte(0x5F),
             ErrorResponseFirstByte::None,
@@ -108,7 +108,7 @@ impl Receive for BootProgramStatusInquiry {
         let response = reader.read_response()?;
 
         Ok(match response {
-            SizedResponse::Response(data) => {
+            SizedResponse::Response(data, _) => {
                 let status = BootProgramStatus::from(data[0]);
                 let error = BootProgramError::from(data[1]);
 

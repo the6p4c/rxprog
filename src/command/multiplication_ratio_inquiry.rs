@@ -24,7 +24,7 @@ impl Receive for MultiplicationRatioInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse> = ResponseReader::new(
+        let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
             p,
             ResponseFirstByte::Byte(0x32),
             ErrorResponseFirstByte::None,
@@ -33,7 +33,7 @@ impl Receive for MultiplicationRatioInquiry {
         let response = reader.read_response()?;
 
         Ok(match response {
-            SizedResponse::Response(data) => {
+            SizedResponse::Response(data, _) => {
                 let clock_type_count = data[0];
 
                 let mut clock_types: Vec<Vec<MultiplicationRatio>> = vec![];

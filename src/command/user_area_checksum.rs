@@ -2,12 +2,12 @@ use super::*;
 use std::io;
 
 #[derive(Debug)]
-pub struct ClockModeInquiry {}
+pub struct UserAreaChecksum {}
 
-impl TransmitCommandData for ClockModeInquiry {
+impl TransmitCommandData for UserAreaChecksum {
     fn command_data(&self) -> CommandData {
         CommandData {
-            opcode: 0x21,
+            opcode: 0x4B,
             has_size_field: false,
             payload: vec![],
         }
@@ -15,27 +15,32 @@ impl TransmitCommandData for ClockModeInquiry {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct ClockModeInquiryResponse {
-    pub modes: Vec<u8>,
+pub struct UserAreaChecksumResponse {
+    pub checksum: u32,
 }
 
-impl Receive for ClockModeInquiry {
-    type Response = ClockModeInquiryResponse;
+impl Receive for UserAreaChecksum {
+    type Response = UserAreaChecksumResponse;
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
         let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
             p,
-            ResponseFirstByte::Byte(0x31),
+            ResponseFirstByte::Byte(0x5B),
             ErrorResponseFirstByte::None,
         );
 
         let response = reader.read_response()?;
 
         Ok(match response {
-            SizedResponse::Response(data, _) => Ok(ClockModeInquiryResponse {
-                modes: data.to_vec(),
-            }),
+            SizedResponse::Response(data, _) => {
+                let mut checksum_bytes = [0u8; 4];
+                checksum_bytes.copy_from_slice(&data);
+
+                let checksum = u32::from_be_bytes(checksum_bytes);
+
+                Ok(UserAreaChecksumResponse { checksum: checksum })
+            }
             SizedResponse::Error(_) => panic!("Error should not ocurr"),
         })
     }
@@ -47,8 +52,8 @@ mod tests {
 
     #[test]
     fn test_tx() -> io::Result<()> {
-        let cmd = ClockModeInquiry {};
-        let command_bytes = [0x21];
+        let cmd = UserAreaChecksum {};
+        let command_bytes = [0x4B];
         let mut p = mockstream::MockStream::new();
 
         cmd.tx(&mut p)?;
@@ -60,8 +65,8 @@ mod tests {
 
     #[test]
     fn test_rx() {
-        let cmd = ClockModeInquiry {};
-        let response_bytes = [0x31, 0x02, 0x00, 0x01, 0xCC];
+        let cmd = UserAreaChecksum {};
+        let response_bytes = [0x5B, 0x04, 0x12, 0x34, 0x56, 0x78, 0x8E];
         let mut p = mockstream::MockStream::new();
         p.push_bytes_to_read(&response_bytes);
 
@@ -69,8 +74,8 @@ mod tests {
 
         assert_eq!(
             response,
-            Ok(ClockModeInquiryResponse {
-                modes: vec![0x00, 0x01],
+            Ok(UserAreaChecksumResponse {
+                checksum: 0x12345678,
             })
         );
         assert!(all_read(&mut p));

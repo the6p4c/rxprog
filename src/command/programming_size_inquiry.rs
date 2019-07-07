@@ -24,7 +24,7 @@ impl Receive for ProgrammingSizeInquiry {
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
-        let reader: ResponseReader<_, SizedResponse> = ResponseReader::new(
+        let reader: ResponseReader<_, SizedResponse<u8>> = ResponseReader::new(
             p,
             ResponseFirstByte::Byte(0x37),
             ErrorResponseFirstByte::None,
@@ -33,7 +33,7 @@ impl Receive for ProgrammingSizeInquiry {
         let response = reader.read_response()?;
 
         Ok(match response {
-            SizedResponse::Response(data) => {
+            SizedResponse::Response(data, _) => {
                 let mut programming_size_bytes = [0u8; 2];
                 programming_size_bytes.copy_from_slice(&data);
 
