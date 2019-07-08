@@ -4,11 +4,16 @@ use super::command::*;
 use super::data::{LockBitStatus, MemoryArea};
 use super::reader::*;
 
+/// Requests the state of the lock bit for a specified memory region
 #[derive(Debug)]
 pub struct ReadLockBitStatus {
+    /// The area in which the address resides
     pub area: MemoryArea,
+    /// Bits 15 to 8 of the address
     pub a15_to_a8: u8,
+    /// Bits 23 to 16 of the address
     pub a23_to_a16: u8,
+    /// Bits 31 to 24 of the address
     pub a31_to_a24: u8,
 }
 
@@ -32,14 +37,19 @@ impl TransmitCommandData for ReadLockBitStatus {
     }
 }
 
+/// Response to a `ReadLockBitStatus`
 #[derive(Debug, PartialEq)]
 pub struct ReadLockBitStatusResponse {
+    /// The state of the lock bit
     pub status: LockBitStatus,
 }
 
+/// Error preventing lock bit status reading
 #[derive(Debug, PartialEq)]
 pub enum ReadLockBitStatusError {
+    /// Command checksum validation failed
     Checksum,
+    /// Address not in specified area
     Address,
 }
 
@@ -77,8 +87,8 @@ impl Receive for ReadLockBitStatus {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

@@ -5,6 +5,7 @@ use std::ops::RangeInclusive;
 use super::command::*;
 use super::reader::*;
 
+/// Requests information about the indivisible units of memory which support erasure operations
 #[derive(Debug)]
 pub struct ErasureBlockInformationInquiry {}
 
@@ -18,8 +19,10 @@ impl TransmitCommandData for ErasureBlockInformationInquiry {
     }
 }
 
+/// Response to an `ErasureBlockInformationInquiry`
 #[derive(Debug, PartialEq)]
 pub struct ErasureBlockInformationInquiryResponse {
+    /// Indivisible memory ranges which individually support erasure
     pub areas: Vec<RangeInclusive<u32>>,
 }
 
@@ -60,8 +63,8 @@ impl Receive for ErasureBlockInformationInquiry {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

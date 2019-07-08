@@ -4,6 +4,7 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Checks if the user area is unprogrammed
 #[derive(Debug)]
 pub struct UserAreaBlankCheck {}
 
@@ -17,12 +18,16 @@ impl TransmitCommandData for UserAreaBlankCheck {
     }
 }
 
+/// State of the block
 #[derive(Debug, PartialEq)]
 pub enum ErasureState {
+    /// No blocks programmed
     Blank,
+    /// One or more blocks programmed
     NotBlank,
 }
 
+/// Response to a `UserAreaBlankCheck`
 #[derive(Debug, PartialEq)]
 pub struct UserAreaBlankCheckResponse {
     pub state: ErasureState,
@@ -55,8 +60,8 @@ impl Receive for UserAreaBlankCheck {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

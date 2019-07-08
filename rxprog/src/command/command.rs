@@ -1,10 +1,14 @@
 use std::io;
 use std::num::Wrapping;
 
+/// A command which can be sent to a device, and results in either a response or error
 pub trait Command {
+    /// Result of a successful command execution
     type Response;
+    /// Result of an unsuccessful command execution
     type Error;
 
+    /// Executes the command on a device
     fn execute<T: io::Read + io::Write>(
         &self,
         p: &mut T,

@@ -4,6 +4,7 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Requests a 32-bit checksum of the user area
 #[derive(Debug)]
 pub struct UserAreaChecksum {}
 
@@ -17,8 +18,10 @@ impl TransmitCommandData for UserAreaChecksum {
     }
 }
 
+/// Response to a `UserAreaChecksum`
 #[derive(Debug, PartialEq)]
 pub struct UserAreaChecksumResponse {
+    /// The checksum of the user area
     pub checksum: u32,
 }
 
@@ -43,8 +46,8 @@ impl Receive for UserAreaChecksum {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

@@ -4,15 +4,19 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Requests the valid frequency range of each clock
 #[derive(Debug)]
 pub struct OperatingFrequencyInquiry {}
 
 #[derive(Debug, PartialEq)]
 pub struct OperatingFrequencyRange {
+    /// The clock's minimum frequency
     pub minimum_frequency: u16,
+    /// The clock's maximum frequency
     pub maximum_frequency: u16,
 }
 
+/// Response to a `OperatingFrequencyInquiry`
 #[derive(Debug, PartialEq)]
 pub struct OperatingFrequencyInquiryResponse {
     pub clock_types: Vec<OperatingFrequencyRange>,
@@ -66,8 +70,8 @@ impl Receive for OperatingFrequencyInquiry {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

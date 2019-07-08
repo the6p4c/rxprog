@@ -3,14 +3,19 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Select a device
 #[derive(Debug)]
 pub struct DeviceSelection {
+    /// The 4 character device code of the device to select
     pub device_code: String,
 }
 
+/// Error preventing successful device selection
 #[derive(Debug, PartialEq)]
 pub enum DeviceSelectionError {
+    /// Command checksum validation failed
     Checksum,
+    /// Invalid device code
     DeviceCode,
 }
 
@@ -52,8 +57,8 @@ impl Receive for DeviceSelection {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

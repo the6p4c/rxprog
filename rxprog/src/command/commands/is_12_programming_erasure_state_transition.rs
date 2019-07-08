@@ -3,12 +3,17 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Transitions to the programming/erasure command wait. If ID code protection is enabled, the
+/// device waits for a valid ID code before transitioning.
 #[derive(Debug)]
 pub struct ProgrammingErasureStateTransition {}
 
+/// Response to a `ProgrammingErasureStateTransition`
 #[derive(Debug, PartialEq)]
 pub enum IDCodeProtectionStatus {
+    /// ID code protection disabled, device now in programming/erasure command wait
     Disabled,
+    /// ID code protection enabled, device now waiting for valid ID code
     Enabled,
 }
 
@@ -50,8 +55,8 @@ impl Receive for ProgrammingErasureStateTransition {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

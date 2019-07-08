@@ -4,6 +4,7 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Disables the lock bit of the selected region
 #[derive(Debug)]
 pub struct LockBitDisable {}
 
@@ -33,8 +34,8 @@ impl Receive for LockBitDisable {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

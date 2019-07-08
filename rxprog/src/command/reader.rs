@@ -185,8 +185,8 @@ impl<T: io::Read, TResponse: ResponseBody> ResponseReader<T, TResponse, NoError>
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     macro_rules! make_test {
         (name => $n:ident, response => $r:expr, rr => $rr:expr, result => panic) => {

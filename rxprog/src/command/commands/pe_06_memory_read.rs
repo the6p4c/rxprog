@@ -4,10 +4,14 @@ use super::command::*;
 use super::data::MemoryArea;
 use super::reader::*;
 
+/// Reads a number of bytes from a specified memory location
 #[derive(Debug)]
 pub struct MemoryRead {
+    /// The memory area to read from
     pub area: MemoryArea,
+    /// Address of the first byte to read
     pub start_address: u32,
+    /// Number of bytes to read
     pub size: u32,
 }
 
@@ -30,15 +34,21 @@ impl TransmitCommandData for MemoryRead {
     }
 }
 
+/// Response to a `MemoryRead`
 #[derive(Debug, PartialEq)]
 pub struct MemoryReadResponse {
+    /// The data read from memory
     pub data: Vec<u8>,
 }
 
+/// Error preventing a successful memory read
 #[derive(Debug, PartialEq)]
 pub enum MemoryReadError {
+    /// Command checksum validation failed
     Checksum,
+    /// Invalid address (not in selected area, or invalid area)
     Address,
+    /// Invalid data size (zero, too large, or calculated end out of bounds)
     DataSize,
 }
 
@@ -69,8 +79,8 @@ impl Receive for MemoryRead {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

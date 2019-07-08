@@ -5,17 +5,23 @@ use std::str;
 use super::command::*;
 use super::reader::*;
 
+/// Request a list of devices supported by the boot program
 #[derive(Debug)]
 pub struct SupportedDeviceInquiry {}
 
+/// A device supported by the boot program
 #[derive(Debug, PartialEq)]
 pub struct SupportedDevice {
+    /// A 4 character identifier
     pub device_code: String,
+    /// Human-readable name of the device
     pub series_name: String,
 }
 
+/// Response to a `SupportedDeviceInquiry`
 #[derive(Debug, PartialEq)]
 pub struct SupportedDeviceInquiryResponse {
+    /// The devices supported by the boot program
     pub devices: Vec<SupportedDevice>,
 }
 
@@ -68,8 +74,8 @@ impl Receive for SupportedDeviceInquiry {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

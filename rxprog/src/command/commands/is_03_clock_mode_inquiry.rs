@@ -4,6 +4,7 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Request a list of supported clock modes
 #[derive(Debug)]
 pub struct ClockModeInquiry {}
 
@@ -17,8 +18,10 @@ impl TransmitCommandData for ClockModeInquiry {
     }
 }
 
+/// Response to a `ClockModeInquiry`
 #[derive(Debug, PartialEq)]
 pub struct ClockModeInquiryResponse {
+    /// The modes supported by the device
     pub modes: Vec<u8>,
 }
 
@@ -40,8 +43,8 @@ impl Receive for ClockModeInquiry {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

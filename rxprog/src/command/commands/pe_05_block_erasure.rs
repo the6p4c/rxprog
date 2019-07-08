@@ -3,8 +3,10 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Erases a block
 #[derive(Debug)]
 pub struct BlockErasure {
+    /// Index of the block to erase, as returned by `ErasureBlockInformationInquiry`
     pub block: u8,
 }
 
@@ -18,10 +20,14 @@ impl TransmitCommandData for BlockErasure {
     }
 }
 
+/// Error preventing successful block erasure
 #[derive(Debug, PartialEq)]
 pub enum BlockErasureError {
+    /// Command checksum validation failed
     Checksum,
+    /// Invalid block number
     BlockNumber,
+    /// Erasure could not be completed
     Erasure,
 }
 
@@ -52,8 +58,8 @@ impl Receive for BlockErasure {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

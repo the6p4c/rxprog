@@ -4,11 +4,16 @@ use super::command::*;
 use super::data::MemoryArea;
 use super::reader::*;
 
+/// Programs the lock bit of a memory region in the specified area
 #[derive(Debug)]
 pub struct LockBitProgram {
+    /// The area in which the address resides
     pub area: MemoryArea,
+    /// Bits 15 to 8 of the address
     pub a15_to_a8: u8,
+    /// Bits 23 to 16 of the address
     pub a23_to_a16: u8,
+    /// Bits 31 to 24 of the address
     pub a31_to_a24: u8,
 }
 
@@ -32,10 +37,14 @@ impl TransmitCommandData for LockBitProgram {
     }
 }
 
+/// Error preventing lock bit programming
 #[derive(Debug, PartialEq)]
 pub enum LockBitProgramError {
+    /// Command checksum validation failed
     Checksum,
+    /// Address not in specified area
     Address,
+    /// Failed to program lock bit
     Programming,
 }
 
@@ -66,8 +75,8 @@ impl Receive for LockBitProgram {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

@@ -4,6 +4,7 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Selectes the user boot area for programming, transitioning into the programming wait
 #[derive(Debug)]
 pub struct UserBootAreaProgrammingSelection {}
 
@@ -33,8 +34,8 @@ impl Receive for UserBootAreaProgrammingSelection {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

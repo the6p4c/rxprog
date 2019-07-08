@@ -5,6 +5,7 @@ use std::ops::RangeInclusive;
 use super::command::*;
 use super::reader::*;
 
+/// Requests information about the device's user areas
 #[derive(Debug)]
 pub struct UserAreaInformationInquiry {}
 
@@ -18,8 +19,10 @@ impl TransmitCommandData for UserAreaInformationInquiry {
     }
 }
 
+/// Response to a `UserAreaInformationInquiry`
 #[derive(Debug, PartialEq)]
 pub struct UserAreaInformationInquiryResponse {
+    /// Memory ranges included in the user area
     pub areas: Vec<RangeInclusive<u32>>,
 }
 
@@ -60,8 +63,8 @@ impl Receive for UserAreaInformationInquiry {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

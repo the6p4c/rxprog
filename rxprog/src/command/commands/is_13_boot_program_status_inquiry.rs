@@ -4,6 +4,7 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Requests the current status of the device
 #[derive(Debug)]
 pub struct BootProgramStatusInquiry {}
 
@@ -17,15 +18,24 @@ impl TransmitCommandData for BootProgramStatusInquiry {
     }
 }
 
+/// The current status of the device
 #[derive(Debug, PartialEq)]
 pub enum BootProgramStatus {
+    /// Waiting to be issued a `DeviceSelection` command
     WaitingForDeviceSelection,
+    /// Waiting to be issued a `ClockModeSelection` command
     WaitingForClockModeSelection,
+    /// Waiting to be issued a `NewBitRateSelection` command
     WaitingForBitRateSelection,
+    /// Waiting to be issued a `ProgrammingErasureStateTransition` command
     WaitingForTransitionToProgrammingErasureCommandWait,
+    /// Busy erasing user area or user boot area
     ErasingUserAreaAndUserBootArea,
+    /// Waiting to be issued a valid programming/erasure command wait command
     WaitingForProgrammingErasureCommand,
+    /// Waiting to be issued a `X256ByteProgramming` command
     WaitingForProgrammingData,
+    /// Waiting to be issued a `BlockErasure` command
     WaitingForErasureBlockSpecification,
 }
 
@@ -45,24 +55,42 @@ impl From<u8> for BootProgramStatus {
     }
 }
 
+/// Last error encountered
 #[derive(Debug, PartialEq)]
 pub enum BootProgramError {
+    /// No errors
     NoError,
+    /// Command checksum validation failed
     Checksum,
+    /// Invalid device code
     IncorrectDeviceCode,
+    /// Invalid clock mode
     IncorrectClockMode,
+    /// Bit rate could not be selected within an acceptable margin of error
     BitRateSelection,
+    /// Input frequency out of bounds
     InputFrequency,
+    /// Multiplication ratio not supported by clock mode
     MultiplicationRatio,
+    /// Operating frequency after scaling not supported
     OperatingFrequency,
+    /// Incorrect block number
     BlockNumber,
+    /// Invalid address
     Address,
+    /// Invalid data read size
     DataSize,
+    /// Failed to complete ID code mismatch triggered erasure
     Erasure,
+    /// Failed to complete erasure
     IncompleteErasure,
+    /// Failed to complete programming
     Programming,
+    /// Unknown
     Selection,
+    /// Invalid command opcode
     Command,
+    /// Bitrate could not be selected within an acceptable margin of error
     BitRateAdjustmentConfirmation,
 }
 
@@ -91,9 +119,12 @@ impl From<u8> for BootProgramError {
     }
 }
 
+/// Response to a `BootProgramStatusInquiry`
 #[derive(Debug, PartialEq)]
 pub struct BootProgramStatusInquiryResponse {
+    /// Current device status
     pub status: BootProgramStatus,
+    /// Last error
     pub error: BootProgramError,
 }
 
@@ -119,8 +150,8 @@ impl Receive for BootProgramStatusInquiry {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

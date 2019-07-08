@@ -5,11 +5,14 @@ use super::command::*;
 use super::data::MultiplicationRatio;
 use super::reader::*;
 
+/// Request a list of supported multiplication ratios for each clock
 #[derive(Debug)]
 pub struct MultiplicationRatioInquiry {}
 
+/// Response to a `MultiplicationRatioInquiry`
 #[derive(Debug, PartialEq)]
 pub struct MultiplicationRatioInquiryResponse {
+    /// A list of lists of multiplication ratios, indexed first by clock
     pub clock_types: Vec<Vec<MultiplicationRatio>>,
 }
 
@@ -61,8 +64,8 @@ impl Receive for MultiplicationRatioInquiry {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

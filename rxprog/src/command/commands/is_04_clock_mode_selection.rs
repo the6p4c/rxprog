@@ -3,14 +3,19 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Select a clock mode
 #[derive(Debug)]
 pub struct ClockModeSelection {
+    /// The clock mode to select
     pub mode: u8,
 }
 
+/// Error preventing successful clock mode selection
 #[derive(Debug, PartialEq)]
 pub enum ClockModeSelectionError {
+    /// Command checksum validation failed
     Checksum,
+    /// Invalid clock mode
     ClockMode,
 }
 
@@ -50,8 +55,8 @@ impl Receive for ClockModeSelection {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

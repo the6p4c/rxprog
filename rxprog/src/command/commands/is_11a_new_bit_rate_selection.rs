@@ -4,21 +4,35 @@ use super::command::*;
 use super::data::MultiplicationRatio;
 use super::reader::*;
 
+/// Selects a new bit rate for the programmer connection. Must be followed by a
+/// `NewBitRateSelectionConfirmation`.
 #[derive(Debug)]
 pub struct NewBitRateSelection {
+    /// New bit rate in bps / 100
     pub bit_rate: u16,
+    /// Device input frequency in MHz * 100
     pub input_frequency: u16,
+    // TODO: Fix the command so this isn't required
+    /// Number of clock types specified - should be 2
     pub clock_type_count: u8,
+    /// Multiplication ratio of the first clock
     pub multiplication_ratio_1: MultiplicationRatio,
+    /// Multiplication ratio of the second clock
     pub multiplication_ratio_2: MultiplicationRatio,
 }
 
+/// Error preventing successful bit rate selection
 #[derive(Debug, PartialEq)]
 pub enum NewBitRateSelectionError {
+    /// Command checksum validation failed
     Checksum,
+    /// Bit rate could not be selected within an acceptable margin of error
     BitRateSelection,
+    /// Input frequency out of bounds
     InputFrequency,
+    /// Multiplication ratio not supported by clock mode
     MultiplicationRatio,
+    /// Operating frequency after scaling not supported
     OperatingFrequency,
 }
 
@@ -69,8 +83,8 @@ impl Receive for NewBitRateSelection {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

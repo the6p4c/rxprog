@@ -4,6 +4,7 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Confirm a new bit rate (sent after `NewBitRateSelection`)
 #[derive(Debug)]
 pub struct NewBitRateSelectionConfirmation {}
 
@@ -33,8 +34,8 @@ impl Receive for NewBitRateSelectionConfirmation {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

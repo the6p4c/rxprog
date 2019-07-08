@@ -5,6 +5,7 @@ use std::ops::RangeInclusive;
 use super::command::*;
 use super::reader::*;
 
+/// Requests information about the device's user boot areas
 #[derive(Debug)]
 pub struct UserBootAreaInformationInquiry {}
 
@@ -18,8 +19,10 @@ impl TransmitCommandData for UserBootAreaInformationInquiry {
     }
 }
 
+/// Response to a `UserBootAreaInformationInquiry`
 #[derive(Debug, PartialEq)]
 pub struct UserBootAreaInformationInquiryResponse {
+    /// Memory ranges included in the user boot area
     pub areas: Vec<RangeInclusive<u32>>,
 }
 
@@ -58,8 +61,8 @@ impl Receive for UserBootAreaInformationInquiry {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

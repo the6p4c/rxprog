@@ -4,8 +4,11 @@ use super::command::*;
 use super::reader::*;
 
 // Can't derive Debug, because there's no Debug impl for a length 256 array
+/// Programs 256 bytes at the provided address in the selected area
 pub struct X256ByteProgramming {
+    /// Address to write to
     pub address: u32,
+    /// Data to write
     pub data: [u8; 256],
 }
 
@@ -24,10 +27,14 @@ impl TransmitCommandData for X256ByteProgramming {
     }
 }
 
+/// Error preventing successful programming
 #[derive(Debug, PartialEq)]
 pub enum X256ByteProgrammingError {
+    /// Command checksum validation failed
     Checksum,
+    /// Address not in selected area
     Address,
+    /// Programming could not be completed
     Programming,
 }
 
@@ -58,8 +65,8 @@ impl Receive for X256ByteProgramming {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {

@@ -4,6 +4,7 @@ use std::io;
 use super::command::*;
 use super::reader::*;
 
+/// Requests the number of bytes in each programming unit
 #[derive(Debug)]
 pub struct ProgrammingSizeInquiry {}
 
@@ -17,8 +18,10 @@ impl TransmitCommandData for ProgrammingSizeInquiry {
     }
 }
 
+/// Response to a `ProgrammingSizeInquiry`
 #[derive(Debug, PartialEq)]
 pub struct ProgrammingSizeInquiryResponse {
+    /// Number of bytes which must be programmed simultaneously
     pub programming_size: u16,
 }
 
@@ -45,8 +48,8 @@ impl Receive for ProgrammingSizeInquiry {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::test_util::is_script_complete;
+    use super::*;
 
     #[test]
     fn test_tx() -> io::Result<()> {
