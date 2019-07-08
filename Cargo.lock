@@ -144,6 +144,13 @@ version = "0.1.0"
 dependencies = [
  "mock-io 0.1.0 (git+https://github.com/carllerche/mock-io)",
  "mockstream 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "rxprog-cli"
+version = "0.1.0"
+dependencies = [
+ "rxprog 0.1.0",
  "serialport 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

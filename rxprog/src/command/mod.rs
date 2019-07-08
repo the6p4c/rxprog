@@ -4,36 +4,8 @@ use std::marker::PhantomData;
 use std::num::Wrapping;
 use std::str;
 
+pub mod commands;
 mod reader;
-
-pub mod block_erasure;
-pub mod boot_program_status_inquiry;
-pub mod clock_mode_inquiry;
-pub mod clock_mode_selection;
-pub mod device_selection;
-pub mod erasure_block_information_inquiry;
-pub mod erasure_selection;
-pub mod lock_bit_disable;
-pub mod lock_bit_enable;
-pub mod lock_bit_program;
-pub mod memory_read;
-pub mod multiplication_ratio_inquiry;
-pub mod new_bit_rate_selection;
-pub mod new_bit_rate_selection_confirmation;
-pub mod operating_frequency_inquiry;
-pub mod programming_erasure_state_transition;
-pub mod programming_size_inquiry;
-pub mod read_lock_bit_status;
-pub mod supported_device_inquiry;
-pub mod user_area_blank_check;
-pub mod user_area_checksum;
-pub mod user_area_information_inquiry;
-pub mod user_boot_area_blank_check;
-pub mod user_boot_area_checksum;
-pub mod user_boot_area_information_inquiry;
-pub mod user_boot_area_programming_selection;
-pub mod user_data_area_programming_selection;
-pub mod x256_byte_programming;
 
 pub trait Command {
     type Response;

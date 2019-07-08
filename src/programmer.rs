@@ -2,7 +2,7 @@ use std::io;
 use std::thread;
 use std::time;
 
-use crate::command;
+use rxprog::command;
 
 #[derive(Debug)]
 pub enum ConnectError {

@@ -1,10 +1,12 @@
+extern crate rxprog;
 extern crate serialport;
 
 use serialport::prelude::*;
 use std::io;
 use std::time;
 
-mod command;
+// TODO: Reorganise the rxprog crate to make this unnecessary
+use rxprog::command::commands;
 mod programmer;
 
 fn main() -> io::Result<()> {
@@ -23,35 +25,28 @@ fn main() -> io::Result<()> {
 
     println!("Connected");
 
-    let response =
-        programmer.execute(&command::supported_device_inquiry::SupportedDeviceInquiry {})?;
+    let response = programmer.execute(&commands::SupportedDeviceInquiry {})?;
     println!("Response: {:x?}", response);
 
-    let response = programmer.execute(&command::clock_mode_inquiry::ClockModeInquiry {})?;
+    let response = programmer.execute(&commands::ClockModeInquiry {})?;
     println!("Response: {:x?}", response);
 
-    let response = programmer
-        .execute(&command::multiplication_ratio_inquiry::MultiplicationRatioInquiry {})?;
+    let response = programmer.execute(&commands::MultiplicationRatioInquiry {})?;
     println!("Response: {:x?}", response);
 
-    let response =
-        programmer.execute(&command::operating_frequency_inquiry::OperatingFrequencyInquiry {})?;
+    let response = programmer.execute(&commands::OperatingFrequencyInquiry {})?;
     println!("Response: {:x?}", response);
 
-    let response = programmer
-        .execute(&command::user_boot_area_information_inquiry::UserBootAreaInformationInquiry {})?;
+    let response = programmer.execute(&commands::UserBootAreaInformationInquiry {})?;
     println!("Response: {:x?}", response);
 
-    let response = programmer
-        .execute(&command::user_area_information_inquiry::UserAreaInformationInquiry {})?;
+    let response = programmer.execute(&commands::UserAreaInformationInquiry {})?;
     println!("Response: {:x?}", response);
 
-    let response = programmer
-        .execute(&command::erasure_block_information_inquiry::ErasureBlockInformationInquiry {})?;
+    let response = programmer.execute(&commands::ErasureBlockInformationInquiry {})?;
     println!("Response: {:x?}", response);
 
-    let response =
-        programmer.execute(&command::programming_size_inquiry::ProgrammingSizeInquiry {})?;
+    let response = programmer.execute(&commands::ProgrammingSizeInquiry {})?;
     println!("Response: {:x?}", response);
 
     Ok(())

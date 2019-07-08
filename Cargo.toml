@@ -1,12 +1,12 @@
 [package]
-name = "rxprog"
+name = "rxprog-cli"
 version = "0.1.0"
 authors = ["The6P4C <watsonjcampbell@gmail.com>"]
 edition = "2018"
 
-[dependencies]
-serialport = "3.3.0"
+[workspace]
+members = ["rxprog"]
 
-[dev-dependencies]
-mockstream = "0.0.3"
-mock-io = { git = "https://github.com/carllerche/mock-io", default-features = false, features = [] }
+[dependencies]
+rxprog = { path = "rxprog" }
+serialport = "3.3.0"
