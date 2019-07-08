@@ -1,6 +1,7 @@
-use super::*;
 use std::io;
 
+use super::command::*;
+use super::data::MultiplicationRatio;
 use super::reader::*;
 
 #[derive(Debug)]

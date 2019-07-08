@@ -1,6 +1,6 @@
-use super::*;
 use std::io;
 
+use super::command::*;
 use super::reader::*;
 
 // Can't derive Debug, because there's no Debug impl for a length 256 array

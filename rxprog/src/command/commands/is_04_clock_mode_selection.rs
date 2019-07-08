@@ -1,6 +1,6 @@
-use super::*;
 use std::io;
 
+use super::command::*;
 use super::reader::*;
 
 #[derive(Debug)]

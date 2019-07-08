@@ -1,6 +1,7 @@
-use super::*;
+use std::convert::Infallible;
 use std::io;
 
+use super::command::*;
 use super::reader::*;
 
 #[derive(Debug)]

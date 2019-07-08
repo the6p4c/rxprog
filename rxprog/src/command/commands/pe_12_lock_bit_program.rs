@@ -1,6 +1,7 @@
-use super::*;
 use std::io;
 
+use super::command::*;
+use super::data::MemoryArea;
 use super::reader::*;
 
 #[derive(Debug)]
