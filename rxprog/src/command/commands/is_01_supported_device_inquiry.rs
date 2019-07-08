@@ -69,16 +69,17 @@ impl Receive for SupportedDeviceInquiry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::test_util::is_script_complete;
 
     #[test]
     fn test_tx() -> io::Result<()> {
         let cmd = SupportedDeviceInquiry {};
         let command_bytes = [0x20];
-        let mut p = mockstream::MockStream::new();
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
         cmd.tx(&mut p)?;
 
-        assert_eq!(p.pop_bytes_written(), command_bytes);
+        assert!(is_script_complete(&mut p));
 
         Ok(())
     }
@@ -92,8 +93,7 @@ mod tests {
             0x09, 0x44, 0x45, 0x56, 0x32, 0x56, 0x57, 0x58, 0x59, 0x5A, // Device 2
             0xC6, // Checksum
         ];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
@@ -112,6 +112,6 @@ mod tests {
                 ],
             })
         );
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 }

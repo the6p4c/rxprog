@@ -56,16 +56,17 @@ impl Receive for UserAreaBlankCheck {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::test_util::is_script_complete;
 
     #[test]
     fn test_tx() -> io::Result<()> {
         let cmd = UserAreaBlankCheck {};
         let command_bytes = [0x4D];
-        let mut p = mockstream::MockStream::new();
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
         cmd.tx(&mut p)?;
 
-        assert_eq!(p.pop_bytes_written(), command_bytes);
+        assert!(is_script_complete(&mut p));
 
         Ok(())
     }
@@ -74,8 +75,7 @@ mod tests {
     fn test_rx_blank() {
         let cmd = UserAreaBlankCheck {};
         let response_bytes = [0x06];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
@@ -85,15 +85,14 @@ mod tests {
                 state: ErasureState::Blank,
             })
         );
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 
     #[test]
     fn test_rx_not_blank() {
         let cmd = UserAreaBlankCheck {};
         let response_bytes = [0xCD, 0x52];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
@@ -103,6 +102,6 @@ mod tests {
                 state: ErasureState::NotBlank,
             })
         );
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 }

@@ -97,11 +97,6 @@ version = "0.1.0"
 source = "git+https://github.com/carllerche/mock-io#ad690f745986288a04e4cc4fa4dda5c84966db9e"
 
 [[package]]
-name = "mockstream"
-version = "0.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "nix"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -143,7 +138,6 @@ name = "rxprog"
 version = "0.1.0"
 dependencies = [
  "mock-io 0.1.0 (git+https://github.com/carllerche/mock-io)",
- "mockstream 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -227,7 +221,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum mach 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "86dd2487cdfea56def77b88438a2c915fb45113c5319bfe7e14306ca4cd0b0e1"
 "checksum memchr 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2efc7bc57c883d4a4d6e3246905283d8dae951bb3bd32f49d6ef297f546e1c39"
 "checksum mock-io 0.1.0 (git+https://github.com/carllerche/mock-io)" = "<none>"
-"checksum mockstream 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "35bbe0c0c9d254b463b13734bc361d1423289547e052b1e77e5a77292496ba2e"
 "checksum nix 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)" = "6c722bee1037d430d0f8e687bbdbf222f27cc6e4e68d5caf630857bb2b6dbdce"
 "checksum pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)" = "676e8eb2b1b4c9043511a9b7bea0915320d7e502b0a079fb03f9635a5252b18c"
 "checksum regex 1.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "1325e8a57b7da4cbcb38b3957112f729990bad0a18420e7e250ef6b1d9a15763"

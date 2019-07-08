@@ -78,6 +78,7 @@ impl Receive for ReadLockBitStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::test_util::is_script_complete;
 
     #[test]
     fn test_tx() -> io::Result<()> {
@@ -88,11 +89,11 @@ mod tests {
             a31_to_a24: 0xFF,
         };
         let command_bytes = [0x71, 0x04, 0x01, 0x00, 0xAA, 0xFF, 0xE1];
-        let mut p = mockstream::MockStream::new();
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
         cmd.tx(&mut p)?;
 
-        assert_eq!(p.pop_bytes_written(), command_bytes);
+        assert!(is_script_complete(&mut p));
 
         Ok(())
     }
@@ -106,8 +107,7 @@ mod tests {
             a31_to_a24: 0xFF,
         };
         let response_bytes = [0x00];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
@@ -117,7 +117,7 @@ mod tests {
                 status: LockBitStatus::Locked,
             })
         );
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 
     #[test]
@@ -129,8 +129,7 @@ mod tests {
             a31_to_a24: 0xFF,
         };
         let response_bytes = [0x40];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
@@ -140,7 +139,7 @@ mod tests {
                 status: LockBitStatus::Unlocked,
             })
         );
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 
     #[test]
@@ -152,12 +151,11 @@ mod tests {
             a31_to_a24: 0xFF,
         };
         let response_bytes = [0xF1, 0x2A];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Err(ReadLockBitStatusError::Address));
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 }

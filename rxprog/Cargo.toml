@@ -5,5 +5,4 @@ authors = ["The6P4C <watsonjcampbell@gmail.com>"]
 edition = "2018"
 
 [dev-dependencies]
-mockstream = "0.0.3"
 mock-io = { git = "https://github.com/carllerche/mock-io", default-features = false, features = [] }

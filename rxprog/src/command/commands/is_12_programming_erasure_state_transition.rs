@@ -51,16 +51,17 @@ impl Receive for ProgrammingErasureStateTransition {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::test_util::is_script_complete;
 
     #[test]
     fn test_tx() -> io::Result<()> {
         let cmd = ProgrammingErasureStateTransition {};
         let command_bytes = [0x40];
-        let mut p = mockstream::MockStream::new();
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
         cmd.tx(&mut p)?;
 
-        assert_eq!(p.pop_bytes_written(), command_bytes);
+        assert!(is_script_complete(&mut p));
 
         Ok(())
     }
@@ -69,38 +70,35 @@ mod tests {
     fn test_rx_success_id_disabled() {
         let cmd = ProgrammingErasureStateTransition {};
         let response_bytes = [0x26];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Ok(IDCodeProtectionStatus::Disabled));
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 
     #[test]
     fn test_rx_success_id_enabled() {
         let cmd = ProgrammingErasureStateTransition {};
         let response_bytes = vec![0x16];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Ok(IDCodeProtectionStatus::Enabled));
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 
     #[test]
     fn test_rx_fail() {
         let cmd = ProgrammingErasureStateTransition {};
         let response_bytes = vec![0xC0, 0x51];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Err(()));
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 }

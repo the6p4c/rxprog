@@ -67,16 +67,17 @@ impl Receive for OperatingFrequencyInquiry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::test_util::is_script_complete;
 
     #[test]
     fn test_tx() -> io::Result<()> {
         let cmd = OperatingFrequencyInquiry {};
         let command_bytes = [0x23];
-        let mut p = mockstream::MockStream::new();
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
         cmd.tx(&mut p)?;
 
-        assert_eq!(p.pop_bytes_written(), command_bytes);
+        assert!(is_script_complete(&mut p));
 
         Ok(())
     }
@@ -90,8 +91,7 @@ mod tests {
             0x00, 0x64, 0x27, 0x10, // Clock type 2
             0x65, // Checksum
         ];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
@@ -110,6 +110,6 @@ mod tests {
                 ],
             })
         );
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 }

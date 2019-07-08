@@ -59,6 +59,7 @@ impl Receive for X256ByteProgramming {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::test_util::is_script_complete;
 
     #[test]
     fn test_tx() -> io::Result<()> {
@@ -91,11 +92,11 @@ mod tests {
             0xFC, 0xFD, 0xFE, 0xFF, // Data
             0x1C, // Checksum
         ];
-        let mut p = mockstream::MockStream::new();
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
         cmd.tx(&mut p)?;
 
-        assert_eq!(p.pop_bytes_written().to_vec(), command_bytes.to_vec());
+        assert!(is_script_complete(&mut p));
 
         Ok(())
     }
@@ -109,13 +110,12 @@ mod tests {
             data: data,
         };
         let response_bytes = [0x06];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Ok(()));
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 
     #[test]
@@ -127,12 +127,11 @@ mod tests {
             data: data,
         };
         let response_bytes = [0xD0, 0x2A];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Err(X256ByteProgrammingError::Address));
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 }

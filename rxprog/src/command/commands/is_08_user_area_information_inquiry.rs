@@ -61,16 +61,17 @@ impl Receive for UserAreaInformationInquiry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::test_util::is_script_complete;
 
     #[test]
     fn test_tx() -> io::Result<()> {
         let cmd = UserAreaInformationInquiry {};
         let command_bytes = [0x24];
-        let mut p = mockstream::MockStream::new();
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
         cmd.tx(&mut p)?;
 
-        assert_eq!(p.pop_bytes_written(), command_bytes);
+        assert!(is_script_complete(&mut p));
 
         Ok(())
     }
@@ -84,8 +85,7 @@ mod tests {
             0x12, 0x34, 0x56, 0x78, 0x89, 0xAB, 0xCD, 0xEF, // Area 2
             0x85, // Checksum
         ];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
@@ -95,6 +95,6 @@ mod tests {
                 areas: vec![0x10000000..=0x20000000, 0x12345678..=0x89ABCDEF],
             })
         );
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 }

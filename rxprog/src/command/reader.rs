@@ -186,11 +186,7 @@ impl<T: io::Read, TResponse: ResponseBody> ResponseReader<T, TResponse, NoError>
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn is_script_complete<T: io::Read + io::Write>(mut p: T) -> bool {
-        let mut buf = [0u8; 1];
-        p.read(&mut buf).unwrap() == 0 && p.write(&[0x00]).is_err()
-    }
+    use super::super::test_util::is_script_complete;
 
     macro_rules! make_test {
         (name => $n:ident, response => $r:expr, rr => $rr:expr, result => panic) => {

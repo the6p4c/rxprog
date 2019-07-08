@@ -70,6 +70,7 @@ impl Receive for NewBitRateSelection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::test_util::is_script_complete;
 
     #[test]
     fn test_tx() -> io::Result<()> {
@@ -81,11 +82,11 @@ mod tests {
             multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
         };
         let command_bytes = [0x3F, 0x07, 0x00, 0xC0, 0x04, 0xE2, 0x02, 0x04, 0xFE, 0x10];
-        let mut p = mockstream::MockStream::new();
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
         cmd.tx(&mut p)?;
 
-        assert_eq!(p.pop_bytes_written(), command_bytes);
+        assert!(is_script_complete(&mut p));
 
         Ok(())
     }
@@ -100,13 +101,12 @@ mod tests {
             multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
         };
         let response_bytes = [0x06];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Ok(()));
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 
     #[test]
@@ -119,12 +119,11 @@ mod tests {
             multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
         };
         let response_bytes = [0xBF, 0x24];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Err(NewBitRateSelectionError::BitRateSelection));
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 }

@@ -53,6 +53,7 @@ impl Receive for DeviceSelection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::test_util::is_script_complete;
 
     #[test]
     fn test_tx() -> io::Result<()> {
@@ -60,11 +61,11 @@ mod tests {
             device_code: "DEV1".to_string(),
         };
         let command_bytes = [0x10, 0x04, 0x44, 0x45, 0x56, 0x31, 0xDC];
-        let mut p = mockstream::MockStream::new();
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
         cmd.tx(&mut p)?;
 
-        assert_eq!(p.pop_bytes_written(), command_bytes);
+        assert!(is_script_complete(&mut p));
 
         Ok(())
     }
@@ -75,13 +76,12 @@ mod tests {
             device_code: "DEV1".to_string(),
         };
         let response_bytes = [0x06];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Ok(()));
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 
     #[test]
@@ -90,12 +90,11 @@ mod tests {
             device_code: "DEV1".to_string(),
         };
         let response_bytes = [0x90, 0x21];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Err(DeviceSelectionError::DeviceCode));
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 }

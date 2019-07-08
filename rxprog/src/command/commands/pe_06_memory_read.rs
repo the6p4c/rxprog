@@ -70,6 +70,7 @@ impl Receive for MemoryRead {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::test_util::is_script_complete;
 
     #[test]
     fn test_tx() -> io::Result<()> {
@@ -81,11 +82,11 @@ mod tests {
         let command_bytes = [
             0x52, 0x09, 0x01, 0x12, 0x34, 0x56, 0x78, 0x00, 0x00, 0x00, 0x0A, 0x86,
         ];
-        let mut p = mockstream::MockStream::new();
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
         cmd.tx(&mut p)?;
 
-        assert_eq!(p.pop_bytes_written(), command_bytes);
+        assert!(is_script_complete(&mut p));
 
         Ok(())
     }
@@ -101,8 +102,7 @@ mod tests {
             0x52, 0x00, 0x00, 0x00, 0x0A, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
             0x0A, 0x6D,
         ];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
@@ -112,7 +112,7 @@ mod tests {
                 data: vec![0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A],
             })
         );
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 
     #[test]
@@ -123,12 +123,11 @@ mod tests {
             size: 0x10,
         };
         let response_bytes = [0xD2, 0x2A];
-        let mut p = mockstream::MockStream::new();
-        p.push_bytes_to_read(&response_bytes);
+        let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p).unwrap();
 
         assert_eq!(response, Err(MemoryReadError::Address),);
-        assert!(all_read(&mut p));
+        assert!(is_script_complete(&mut p));
     }
 }

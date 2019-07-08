@@ -77,8 +77,3 @@ impl<T: Transmit + Receive> Command for T {
         Ok(self.rx(p)?)
     }
 }
-
-pub fn all_read<T: io::Read>(p: &mut T) -> bool {
-    let mut buf = [0u8; 1];
-    p.read(&mut buf).unwrap() == 0
-}
