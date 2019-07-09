@@ -2,6 +2,7 @@ use std::convert::Infallible;
 use std::io;
 use std::str;
 
+use super::data::SupportedDevice;
 use super::command::*;
 use super::reader::*;
 
@@ -17,15 +18,6 @@ impl TransmitCommandData for SupportedDeviceInquiry {
             payload: vec![],
         }
     }
-}
-
-/// A device supported by the boot program
-#[derive(Debug, PartialEq)]
-pub struct SupportedDevice {
-    /// A 4 character identifier
-    pub device_code: String,
-    /// Human-readable name of the device
-    pub series_name: String,
 }
 
 impl Receive for SupportedDeviceInquiry {
