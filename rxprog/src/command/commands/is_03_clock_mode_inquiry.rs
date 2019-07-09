@@ -18,15 +18,8 @@ impl TransmitCommandData for ClockModeInquiry {
     }
 }
 
-/// Response to a `ClockModeInquiry`
-#[derive(Debug, PartialEq)]
-pub struct ClockModeInquiryResponse {
-    /// The modes supported by the device
-    pub modes: Vec<u8>,
-}
-
 impl Receive for ClockModeInquiry {
-    type Response = ClockModeInquiryResponse;
+    type Response = Vec<u8>;
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
@@ -35,9 +28,7 @@ impl Receive for ClockModeInquiry {
 
         let data = reader.read_response()?.data;
 
-        Ok(Ok(ClockModeInquiryResponse {
-            modes: data.to_vec(),
-        }))
+        Ok(Ok(data.to_vec()))
     }
 }
 
@@ -67,12 +58,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(
-            response,
-            Ok(ClockModeInquiryResponse {
-                modes: vec![0x00, 0x01],
-            })
-        );
+        assert_eq!(response, Ok(vec![0x00, 0x01]));
         assert!(is_script_complete(&mut p));
     }
 }

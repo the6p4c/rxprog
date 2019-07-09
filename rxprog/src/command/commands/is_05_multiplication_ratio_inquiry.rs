@@ -9,13 +9,6 @@ use super::reader::*;
 #[derive(Debug)]
 pub struct MultiplicationRatioInquiry {}
 
-/// Response to a `MultiplicationRatioInquiry`
-#[derive(Debug, PartialEq)]
-pub struct MultiplicationRatioInquiryResponse {
-    /// A list of lists of multiplication ratios, indexed first by clock
-    pub clock_types: Vec<Vec<MultiplicationRatio>>,
-}
-
 impl TransmitCommandData for MultiplicationRatioInquiry {
     fn command_data(&self) -> CommandData {
         CommandData {
@@ -27,7 +20,7 @@ impl TransmitCommandData for MultiplicationRatioInquiry {
 }
 
 impl Receive for MultiplicationRatioInquiry {
-    type Response = MultiplicationRatioInquiryResponse;
+    type Response = Vec<Vec<MultiplicationRatio>>;
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
@@ -56,9 +49,7 @@ impl Receive for MultiplicationRatioInquiry {
             remaining_data = &remaining_data[(1 + multiplication_ratio_count)..];
         }
 
-        Ok(Ok(MultiplicationRatioInquiryResponse {
-            clock_types: clock_types,
-        }))
+        Ok(Ok(clock_types))
     }
 }
 
@@ -95,24 +86,22 @@ mod tests {
 
         assert_eq!(
             response,
-            Ok(MultiplicationRatioInquiryResponse {
-                clock_types: vec![
-                    vec![
-                        MultiplicationRatio::DivideBy(4),
-                        MultiplicationRatio::DivideBy(2),
-                        MultiplicationRatio::MultiplyBy(2),
-                        MultiplicationRatio::MultiplyBy(4)
-                    ],
-                    vec![
-                        MultiplicationRatio::MultiplyBy(1),
-                        MultiplicationRatio::MultiplyBy(2),
-                        MultiplicationRatio::MultiplyBy(4),
-                        MultiplicationRatio::MultiplyBy(8),
-                        MultiplicationRatio::MultiplyBy(16),
-                        MultiplicationRatio::MultiplyBy(32)
-                    ],
+            Ok(vec![
+                vec![
+                    MultiplicationRatio::DivideBy(4),
+                    MultiplicationRatio::DivideBy(2),
+                    MultiplicationRatio::MultiplyBy(2),
+                    MultiplicationRatio::MultiplyBy(4)
                 ],
-            })
+                vec![
+                    MultiplicationRatio::MultiplyBy(1),
+                    MultiplicationRatio::MultiplyBy(2),
+                    MultiplicationRatio::MultiplyBy(4),
+                    MultiplicationRatio::MultiplyBy(8),
+                    MultiplicationRatio::MultiplyBy(16),
+                    MultiplicationRatio::MultiplyBy(32)
+                ],
+            ])
         );
         assert!(is_script_complete(&mut p));
     }

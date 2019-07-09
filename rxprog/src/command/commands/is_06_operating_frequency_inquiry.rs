@@ -1,5 +1,6 @@
 use std::convert::Infallible;
 use std::io;
+use std::ops::RangeInclusive;
 
 use super::command::*;
 use super::reader::*;
@@ -7,20 +8,6 @@ use super::reader::*;
 /// Requests the valid frequency range of each clock
 #[derive(Debug)]
 pub struct OperatingFrequencyInquiry {}
-
-#[derive(Debug, PartialEq)]
-pub struct OperatingFrequencyRange {
-    /// The clock's minimum frequency
-    pub minimum_frequency: u16,
-    /// The clock's maximum frequency
-    pub maximum_frequency: u16,
-}
-
-/// Response to a `OperatingFrequencyInquiry`
-#[derive(Debug, PartialEq)]
-pub struct OperatingFrequencyInquiryResponse {
-    pub clock_types: Vec<OperatingFrequencyRange>,
-}
 
 impl TransmitCommandData for OperatingFrequencyInquiry {
     fn command_data(&self) -> CommandData {
@@ -33,7 +20,7 @@ impl TransmitCommandData for OperatingFrequencyInquiry {
 }
 
 impl Receive for OperatingFrequencyInquiry {
-    type Response = OperatingFrequencyInquiryResponse;
+    type Response = Vec<RangeInclusive<u16>>;
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
@@ -44,7 +31,7 @@ impl Receive for OperatingFrequencyInquiry {
 
         let clock_type_count = data[0];
 
-        let mut clock_types: Vec<OperatingFrequencyRange> = vec![];
+        let mut clock_types: Vec<RangeInclusive<u16>> = vec![];
         let mut remaining_data = &data[1..];
         for _ in 0..clock_type_count {
             let (clock_type_data, new_remaining_data) = remaining_data.split_at(4);
@@ -54,17 +41,15 @@ impl Receive for OperatingFrequencyInquiry {
             let mut maximum_frequency_bytes = [0u8; 2];
             maximum_frequency_bytes.copy_from_slice(&clock_type_data[2..=3]);
 
-            clock_types.push(OperatingFrequencyRange {
-                minimum_frequency: u16::from_be_bytes(minimum_frequency_bytes),
-                maximum_frequency: u16::from_be_bytes(maximum_frequency_bytes),
-            });
+            let minimum_frequency = u16::from_be_bytes(minimum_frequency_bytes);
+            let maximum_frequency = u16::from_be_bytes(maximum_frequency_bytes);
+
+            clock_types.push(minimum_frequency..=maximum_frequency);
 
             remaining_data = &new_remaining_data;
         }
 
-        Ok(Ok(OperatingFrequencyInquiryResponse {
-            clock_types: clock_types,
-        }))
+        Ok(Ok(clock_types))
     }
 }
 
@@ -99,21 +84,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(
-            response,
-            Ok(OperatingFrequencyInquiryResponse {
-                clock_types: vec![
-                    OperatingFrequencyRange {
-                        minimum_frequency: 1000,
-                        maximum_frequency: 2000
-                    },
-                    OperatingFrequencyRange {
-                        minimum_frequency: 100,
-                        maximum_frequency: 10000
-                    },
-                ],
-            })
-        );
+        assert_eq!(response, Ok(vec![1000..=2000, 100..=10000]));
         assert!(is_script_complete(&mut p));
     }
 }

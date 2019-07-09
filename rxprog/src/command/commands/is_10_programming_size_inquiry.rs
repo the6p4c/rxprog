@@ -18,15 +18,8 @@ impl TransmitCommandData for ProgrammingSizeInquiry {
     }
 }
 
-/// Response to a `ProgrammingSizeInquiry`
-#[derive(Debug, PartialEq)]
-pub struct ProgrammingSizeInquiryResponse {
-    /// Number of bytes which must be programmed simultaneously
-    pub programming_size: u16,
-}
-
 impl Receive for ProgrammingSizeInquiry {
-    type Response = ProgrammingSizeInquiryResponse;
+    type Response = u16;
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
@@ -40,9 +33,7 @@ impl Receive for ProgrammingSizeInquiry {
 
         let programming_size = u16::from_be_bytes(programming_size_bytes);
 
-        Ok(Ok(ProgrammingSizeInquiryResponse {
-            programming_size: programming_size,
-        }))
+        Ok(Ok(programming_size))
     }
 }
 
@@ -72,12 +63,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(
-            response,
-            Ok(ProgrammingSizeInquiryResponse {
-                programming_size: 0x1234,
-            })
-        );
+        assert_eq!(response, Ok(0x1234));
         assert!(is_script_complete(&mut p));
     }
 }

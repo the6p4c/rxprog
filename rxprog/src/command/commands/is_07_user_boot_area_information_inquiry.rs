@@ -19,15 +19,8 @@ impl TransmitCommandData for UserBootAreaInformationInquiry {
     }
 }
 
-/// Response to a `UserBootAreaInformationInquiry`
-#[derive(Debug, PartialEq)]
-pub struct UserBootAreaInformationInquiryResponse {
-    /// Memory ranges included in the user boot area
-    pub areas: Vec<RangeInclusive<u32>>,
-}
-
 impl Receive for UserBootAreaInformationInquiry {
-    type Response = UserBootAreaInformationInquiryResponse;
+    type Response = Vec<RangeInclusive<u32>>;
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
@@ -55,7 +48,7 @@ impl Receive for UserBootAreaInformationInquiry {
             remaining_data = &remaining_data[8..];
         }
 
-        Ok(Ok(UserBootAreaInformationInquiryResponse { areas: areas }))
+        Ok(Ok(areas))
     }
 }
 
@@ -92,9 +85,7 @@ mod tests {
 
         assert_eq!(
             response,
-            Ok(UserBootAreaInformationInquiryResponse {
-                areas: vec![0x10000000..=0x20000000, 0x12345678..=0x89ABCDEF],
-            })
+            Ok(vec![0x10000000..=0x20000000, 0x12345678..=0x89ABCDEF])
         );
         assert!(is_script_complete(&mut p));
     }

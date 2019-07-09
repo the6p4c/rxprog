@@ -34,13 +34,6 @@ impl TransmitCommandData for MemoryRead {
     }
 }
 
-/// Response to a `MemoryRead`
-#[derive(Debug, PartialEq)]
-pub struct MemoryReadResponse {
-    /// The data read from memory
-    pub data: Vec<u8>,
-}
-
 /// Error preventing a successful memory read
 #[derive(Debug, PartialEq)]
 pub enum MemoryReadError {
@@ -53,7 +46,7 @@ pub enum MemoryReadError {
 }
 
 impl Receive for MemoryRead {
-    type Response = MemoryReadResponse;
+    type Response = Vec<u8>;
     type Error = MemoryReadError;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
@@ -66,7 +59,7 @@ impl Receive for MemoryRead {
         let response = reader.read_response()?;
 
         Ok(match response {
-            Ok(SizedResponse { data, .. }) => Ok(MemoryReadResponse { data: data }),
+            Ok(SizedResponse { data, .. }) => Ok(data),
             Err(error_code) => Err(match error_code {
                 0x11 => MemoryReadError::Checksum,
                 0x2A => MemoryReadError::Address,
@@ -118,9 +111,9 @@ mod tests {
 
         assert_eq!(
             response,
-            Ok(MemoryReadResponse {
-                data: vec![0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A],
-            })
+            Ok(vec![
+                0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A
+            ])
         );
         assert!(is_script_complete(&mut p));
     }
@@ -137,7 +130,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(response, Err(MemoryReadError::Address),);
+        assert_eq!(response, Err(MemoryReadError::Address));
         assert!(is_script_complete(&mut p));
     }
 }

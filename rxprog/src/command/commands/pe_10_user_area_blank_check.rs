@@ -27,14 +27,8 @@ pub enum ErasureState {
     NotBlank,
 }
 
-/// Response to a `UserAreaBlankCheck`
-#[derive(Debug, PartialEq)]
-pub struct UserAreaBlankCheckResponse {
-    pub state: ErasureState,
-}
-
 impl Receive for UserAreaBlankCheck {
-    type Response = UserAreaBlankCheckResponse;
+    type Response = ErasureState;
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
@@ -54,7 +48,7 @@ impl Receive for UserAreaBlankCheck {
             },
         };
 
-        Ok(Ok(UserAreaBlankCheckResponse { state: state }))
+        Ok(Ok(state))
     }
 }
 
@@ -84,12 +78,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(
-            response,
-            Ok(UserAreaBlankCheckResponse {
-                state: ErasureState::Blank,
-            })
-        );
+        assert_eq!(response, Ok(ErasureState::Blank));
         assert!(is_script_complete(&mut p));
     }
 
@@ -101,12 +90,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(
-            response,
-            Ok(UserAreaBlankCheckResponse {
-                state: ErasureState::NotBlank,
-            })
-        );
+        assert_eq!(response, Ok(ErasureState::NotBlank));
         assert!(is_script_complete(&mut p));
     }
 }

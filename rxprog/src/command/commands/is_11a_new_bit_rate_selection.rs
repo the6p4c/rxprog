@@ -12,13 +12,25 @@ pub struct NewBitRateSelection {
     pub bit_rate: u16,
     /// Device input frequency in MHz * 100
     pub input_frequency: u16,
-    // TODO: Fix the command so this isn't required
-    /// Number of clock types specified - should be 2
-    pub clock_type_count: u8,
-    /// Multiplication ratio of the first clock
-    pub multiplication_ratio_1: MultiplicationRatio,
-    /// Multiplication ratio of the second clock
-    pub multiplication_ratio_2: MultiplicationRatio,
+    /// Clock multiplication ratios
+    pub multiplication_ratios: Vec<MultiplicationRatio>,
+}
+
+impl TransmitCommandData for NewBitRateSelection {
+    fn command_data(&self) -> CommandData {
+        CommandData {
+            opcode: 0x3F,
+            has_size_field: true,
+            payload: {
+                let mut payload = vec![];
+                payload.extend_from_slice(&self.bit_rate.to_be_bytes());
+                payload.extend_from_slice(&self.input_frequency.to_be_bytes());
+                payload.push(self.multiplication_ratios.len() as u8);
+                payload.extend(self.multiplication_ratios.iter().map(|&x| u8::from(x)));
+                payload
+            },
+        }
+    }
 }
 
 /// Error preventing successful bit rate selection
@@ -34,24 +46,6 @@ pub enum NewBitRateSelectionError {
     MultiplicationRatio,
     /// Operating frequency after scaling not supported
     OperatingFrequency,
-}
-
-impl TransmitCommandData for NewBitRateSelection {
-    fn command_data(&self) -> CommandData {
-        CommandData {
-            opcode: 0x3F,
-            has_size_field: true,
-            payload: {
-                let mut payload = vec![];
-                payload.extend_from_slice(&self.bit_rate.to_be_bytes());
-                payload.extend_from_slice(&self.input_frequency.to_be_bytes());
-                payload.push(self.clock_type_count);
-                payload.push(self.multiplication_ratio_1.into());
-                payload.push(self.multiplication_ratio_2.into());
-                payload
-            },
-        }
-    }
 }
 
 impl Receive for NewBitRateSelection {
@@ -91,9 +85,10 @@ mod tests {
         let cmd = NewBitRateSelection {
             bit_rate: 0x00C0,
             input_frequency: 0x04E2,
-            clock_type_count: 0x02,
-            multiplication_ratio_1: MultiplicationRatio::MultiplyBy(4),
-            multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
+            multiplication_ratios: vec![
+                MultiplicationRatio::MultiplyBy(4),
+                MultiplicationRatio::DivideBy(2),
+            ],
         };
         let command_bytes = [0x3F, 0x07, 0x00, 0xC0, 0x04, 0xE2, 0x02, 0x04, 0xFE, 0x10];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -110,9 +105,10 @@ mod tests {
         let cmd = NewBitRateSelection {
             bit_rate: 0x00C0,
             input_frequency: 0x04E2,
-            clock_type_count: 0x02,
-            multiplication_ratio_1: MultiplicationRatio::MultiplyBy(4),
-            multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
+            multiplication_ratios: vec![
+                MultiplicationRatio::MultiplyBy(4),
+                MultiplicationRatio::DivideBy(2),
+            ],
         };
         let response_bytes = [0x06];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
@@ -128,9 +124,10 @@ mod tests {
         let cmd = NewBitRateSelection {
             bit_rate: 0x00C0,
             input_frequency: 0x04E2,
-            clock_type_count: 0x02,
-            multiplication_ratio_1: MultiplicationRatio::MultiplyBy(4),
-            multiplication_ratio_2: MultiplicationRatio::DivideBy(2),
+            multiplication_ratios: vec![
+                MultiplicationRatio::MultiplyBy(4),
+                MultiplicationRatio::DivideBy(2),
+            ],
         };
         let response_bytes = [0xBF, 0x24];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();

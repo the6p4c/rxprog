@@ -10,15 +10,6 @@ pub struct ClockModeSelection {
     pub mode: u8,
 }
 
-/// Error preventing successful clock mode selection
-#[derive(Debug, PartialEq)]
-pub enum ClockModeSelectionError {
-    /// Command checksum validation failed
-    Checksum,
-    /// Invalid clock mode
-    ClockMode,
-}
-
 impl TransmitCommandData for ClockModeSelection {
     fn command_data(&self) -> CommandData {
         CommandData {
@@ -27,6 +18,15 @@ impl TransmitCommandData for ClockModeSelection {
             payload: vec![self.mode],
         }
     }
+}
+
+/// Error preventing successful clock mode selection
+#[derive(Debug, PartialEq)]
+pub enum ClockModeSelectionError {
+    /// Command checksum validation failed
+    Checksum,
+    /// Invalid clock mode
+    ClockMode,
 }
 
 impl Receive for ClockModeSelection {

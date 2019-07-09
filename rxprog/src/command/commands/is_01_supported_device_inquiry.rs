@@ -9,22 +9,6 @@ use super::reader::*;
 #[derive(Debug)]
 pub struct SupportedDeviceInquiry {}
 
-/// A device supported by the boot program
-#[derive(Debug, PartialEq)]
-pub struct SupportedDevice {
-    /// A 4 character identifier
-    pub device_code: String,
-    /// Human-readable name of the device
-    pub series_name: String,
-}
-
-/// Response to a `SupportedDeviceInquiry`
-#[derive(Debug, PartialEq)]
-pub struct SupportedDeviceInquiryResponse {
-    /// The devices supported by the boot program
-    pub devices: Vec<SupportedDevice>,
-}
-
 impl TransmitCommandData for SupportedDeviceInquiry {
     fn command_data(&self) -> CommandData {
         CommandData {
@@ -35,8 +19,17 @@ impl TransmitCommandData for SupportedDeviceInquiry {
     }
 }
 
+/// A device supported by the boot program
+#[derive(Debug, PartialEq)]
+pub struct SupportedDevice {
+    /// A 4 character identifier
+    pub device_code: String,
+    /// Human-readable name of the device
+    pub series_name: String,
+}
+
 impl Receive for SupportedDeviceInquiry {
-    type Response = SupportedDeviceInquiryResponse;
+    type Response = Vec<SupportedDevice>;
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
@@ -68,7 +61,7 @@ impl Receive for SupportedDeviceInquiry {
             remaining_data = &remaining_data[(1 + character_count)..];
         }
 
-        Ok(Ok(SupportedDeviceInquiryResponse { devices: devices }))
+        Ok(Ok(devices))
     }
 }
 
@@ -105,18 +98,16 @@ mod tests {
 
         assert_eq!(
             response,
-            Ok(SupportedDeviceInquiryResponse {
-                devices: vec![
-                    SupportedDevice {
-                        device_code: "DEV1".to_string(),
-                        series_name: "ABCD".to_string(),
-                    },
-                    SupportedDevice {
-                        device_code: "DEV2".to_string(),
-                        series_name: "VWXYZ".to_string(),
-                    },
-                ],
-            })
+            Ok(vec![
+                SupportedDevice {
+                    device_code: "DEV1".to_string(),
+                    series_name: "ABCD".to_string(),
+                },
+                SupportedDevice {
+                    device_code: "DEV2".to_string(),
+                    series_name: "VWXYZ".to_string(),
+                },
+            ])
         );
         assert!(is_script_complete(&mut p));
     }

@@ -10,15 +10,6 @@ pub struct DeviceSelection {
     pub device_code: String,
 }
 
-/// Error preventing successful device selection
-#[derive(Debug, PartialEq)]
-pub enum DeviceSelectionError {
-    /// Command checksum validation failed
-    Checksum,
-    /// Invalid device code
-    DeviceCode,
-}
-
 impl TransmitCommandData for DeviceSelection {
     fn command_data(&self) -> CommandData {
         assert_eq!(self.device_code.len(), 4);
@@ -29,6 +20,15 @@ impl TransmitCommandData for DeviceSelection {
             payload: self.device_code.bytes().collect(),
         }
     }
+}
+
+/// Error preventing successful device selection
+#[derive(Debug, PartialEq)]
+pub enum DeviceSelectionError {
+    /// Command checksum validation failed
+    Checksum,
+    /// Invalid device code
+    DeviceCode,
 }
 
 impl Receive for DeviceSelection {

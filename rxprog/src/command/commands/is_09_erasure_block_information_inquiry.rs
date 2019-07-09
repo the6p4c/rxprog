@@ -19,15 +19,8 @@ impl TransmitCommandData for ErasureBlockInformationInquiry {
     }
 }
 
-/// Response to an `ErasureBlockInformationInquiry`
-#[derive(Debug, PartialEq)]
-pub struct ErasureBlockInformationInquiryResponse {
-    /// Indivisible memory ranges which individually support erasure
-    pub areas: Vec<RangeInclusive<u32>>,
-}
-
 impl Receive for ErasureBlockInformationInquiry {
-    type Response = ErasureBlockInformationInquiryResponse;
+    type Response = Vec<RangeInclusive<u32>>;
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
@@ -57,7 +50,7 @@ impl Receive for ErasureBlockInformationInquiry {
             remaining_data = new_remaining_data;
         }
 
-        Ok(Ok(ErasureBlockInformationInquiryResponse { areas: areas }))
+        Ok(Ok(areas))
     }
 }
 
@@ -94,9 +87,7 @@ mod tests {
 
         assert_eq!(
             response,
-            Ok(ErasureBlockInformationInquiryResponse {
-                areas: vec![0x10000000..=0x20000000, 0x12345678..=0x89ABCDEF],
-            })
+            Ok(vec![0x10000000..=0x20000000, 0x12345678..=0x89ABCDEF])
         );
         assert!(is_script_complete(&mut p));
     }

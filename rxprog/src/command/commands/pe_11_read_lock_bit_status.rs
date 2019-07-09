@@ -37,13 +37,6 @@ impl TransmitCommandData for ReadLockBitStatus {
     }
 }
 
-/// Response to a `ReadLockBitStatus`
-#[derive(Debug, PartialEq)]
-pub struct ReadLockBitStatusResponse {
-    /// The state of the lock bit
-    pub status: LockBitStatus,
-}
-
 /// Error preventing lock bit status reading
 #[derive(Debug, PartialEq)]
 pub enum ReadLockBitStatusError {
@@ -54,7 +47,7 @@ pub enum ReadLockBitStatusError {
 }
 
 impl Receive for ReadLockBitStatus {
-    type Response = ReadLockBitStatusResponse;
+    type Response = LockBitStatus;
     type Error = ReadLockBitStatusError;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
@@ -68,12 +61,8 @@ impl Receive for ReadLockBitStatus {
 
         Ok(match response {
             Ok(SimpleResponse { first_byte }) => match first_byte {
-                0x00 => Ok(ReadLockBitStatusResponse {
-                    status: LockBitStatus::Locked,
-                }),
-                0x40 => Ok(ReadLockBitStatusResponse {
-                    status: LockBitStatus::Unlocked,
-                }),
+                0x00 => Ok(LockBitStatus::Locked),
+                0x40 => Ok(LockBitStatus::Unlocked),
                 _ => panic!("Response with unknown first byte"),
             },
             Err(error_code) => Err(match error_code {
@@ -121,12 +110,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(
-            response,
-            Ok(ReadLockBitStatusResponse {
-                status: LockBitStatus::Locked,
-            })
-        );
+        assert_eq!(response, Ok(LockBitStatus::Locked));
         assert!(is_script_complete(&mut p));
     }
 
@@ -143,12 +127,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(
-            response,
-            Ok(ReadLockBitStatusResponse {
-                status: LockBitStatus::Unlocked,
-            })
-        );
+        assert_eq!(response, Ok(LockBitStatus::Unlocked));
         assert!(is_script_complete(&mut p));
     }
 

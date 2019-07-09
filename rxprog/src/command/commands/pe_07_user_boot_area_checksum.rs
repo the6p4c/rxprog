@@ -18,15 +18,8 @@ impl TransmitCommandData for UserBootAreaChecksum {
     }
 }
 
-/// Response to a `UserBootAreaChecksum`
-#[derive(Debug, PartialEq)]
-pub struct UserBootAreaChecksumResponse {
-    /// The checksum of the user boot area
-    pub checksum: u32,
-}
-
 impl Receive for UserBootAreaChecksum {
-    type Response = UserBootAreaChecksumResponse;
+    type Response = u32;
     type Error = Infallible;
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
@@ -40,7 +33,7 @@ impl Receive for UserBootAreaChecksum {
 
         let checksum = u32::from_be_bytes(checksum_bytes);
 
-        Ok(Ok(UserBootAreaChecksumResponse { checksum: checksum }))
+        Ok(Ok(checksum))
     }
 }
 
@@ -70,12 +63,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(
-            response,
-            Ok(UserBootAreaChecksumResponse {
-                checksum: 0x12345678,
-            })
-        );
+        assert_eq!(response, Ok(0x12345678));
         assert!(is_script_complete(&mut p));
     }
 }
