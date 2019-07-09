@@ -61,6 +61,15 @@ pub enum MemoryArea {
     UserArea,
 }
 
+/// State of the block
+#[derive(Debug, PartialEq)]
+pub enum ErasureState {
+    /// No blocks programmed
+    Blank,
+    /// One or more blocks programmed
+    NotBlank,
+}
+
 /// The state of the lock bit protecting a memory region
 #[derive(Debug, PartialEq)]
 pub enum LockBitStatus {

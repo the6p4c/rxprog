@@ -2,6 +2,7 @@ use std::convert::Infallible;
 use std::io;
 
 use super::command::*;
+use super::data::ErasureState;
 use super::reader::*;
 
 /// Checks if the user boot area is unprogrammed
@@ -16,15 +17,6 @@ impl TransmitCommandData for UserBootAreaBlankCheck {
             payload: vec![],
         }
     }
-}
-
-/// State of the block
-#[derive(Debug, PartialEq)]
-pub enum ErasureState {
-    /// No blocks programmed
-    Blank,
-    /// One or more blocks programmed
-    NotBlank,
 }
 
 impl Receive for UserBootAreaBlankCheck {
