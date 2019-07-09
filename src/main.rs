@@ -1,13 +1,11 @@
 extern crate rxprog;
 extern crate serialport;
 
-use serialport::prelude::*;
 use std::io;
 use std::time;
 
-// TODO: Reorganise the rxprog crate to make this unnecessary
-use rxprog::command::commands;
-mod programmer;
+use rxprog::programmer::Programmer;
+use serialport::prelude::*;
 
 fn main() -> io::Result<()> {
     let s = SerialPortSettings {
@@ -20,34 +18,40 @@ fn main() -> io::Result<()> {
     };
     let p = serialport::open_with_settings("COM3", &s).expect("Open failed");
 
-    let programmer = programmer::Programmer::new(p);
-    let mut programmer = programmer.connect()?.expect("Connect failed");
+    let prog = Programmer::new(p);
+    let mut prog = prog.connect()?.expect("Could not connect");
 
-    println!("Connected");
+    let devices = prog.supported_devices()?;
+    println!("Received devices {:?}", devices);
 
-    let response = programmer.execute(&commands::SupportedDeviceInquiry {})?;
-    println!("Response: {:x?}", response);
+    let device_code = &devices[0].device_code;
+    let mut prog = prog
+        .select_device(&device_code)?
+        .expect("Could not select device");
 
-    let response = programmer.execute(&commands::ClockModeInquiry {})?;
-    println!("Response: {:x?}", response);
+    let clock_modes = prog.clock_modes()?;
+    println!("Received clock modes {:?}", clock_modes);
 
-    let response = programmer.execute(&commands::MultiplicationRatioInquiry {})?;
-    println!("Response: {:x?}", response);
+    let clock_mode = clock_modes[0];
+    let mut prog = prog
+        .select_clock_mode(clock_mode)?
+        .expect("Could not select clock mode");
 
-    let response = programmer.execute(&commands::OperatingFrequencyInquiry {})?;
-    println!("Response: {:x?}", response);
+    let multiplication_ratios = prog.multiplication_ratios()?;
+    println!("Received multiplication ratios {:?}", multiplication_ratios);
 
-    let response = programmer.execute(&commands::UserBootAreaInformationInquiry {})?;
-    println!("Response: {:x?}", response);
+    let operating_frequencies = prog.operating_frequencies()?;
+    println!("Received operating frequencies {:?}", operating_frequencies);
 
-    let response = programmer.execute(&commands::UserAreaInformationInquiry {})?;
-    println!("Response: {:x?}", response);
+    let mut _prog = prog
+        .set_new_bit_rate(
+            384,
+            3200,
+            vec![multiplication_ratios[0][0], multiplication_ratios[1][0]],
+        )?
+        .expect("Could not set new bit rate");
 
-    let response = programmer.execute(&commands::ErasureBlockInformationInquiry {})?;
-    println!("Response: {:x?}", response);
-
-    let response = programmer.execute(&commands::ProgrammingSizeInquiry {})?;
-    println!("Response: {:x?}", response);
+    println!("Connected after bit rate selection");
 
     Ok(())
 }

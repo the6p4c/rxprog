@@ -2,8 +2,8 @@ use std::convert::Infallible;
 use std::io;
 use std::str;
 
-use super::data::SupportedDevice;
 use super::command::*;
+use super::data::SupportedDevice;
 use super::reader::*;
 
 /// Request a list of devices supported by the boot program

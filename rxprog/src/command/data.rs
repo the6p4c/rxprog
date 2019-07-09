@@ -1,3 +1,12 @@
+/// A device supported by the boot program
+#[derive(Debug, PartialEq)]
+pub struct SupportedDevice {
+    /// A 4 character identifier
+    pub device_code: String,
+    /// Human-readable name of the device
+    pub series_name: String,
+}
+
 /// A clock prescaler ratio
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MultiplicationRatio {
