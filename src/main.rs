@@ -11,7 +11,7 @@ use clap::{App, Arg};
 use rxprog::command::data::MultiplicationRatio;
 use rxprog::programmer::{
     Programmer, ProgrammerConnected, ProgrammerConnectedClockModeSelected,
-    ProgrammerConnectedDeviceSelected,
+    ProgrammerConnectedDeviceSelected, ProgrammerConnectedNewBitRateSelected,
 };
 use serialport::prelude::*;
 
@@ -139,6 +139,54 @@ fn list_operating_frequencies(prog: &mut ProgrammerConnectedClockModeSelected) -
             .map(|row| row.iter().map(|s| s.as_str()).collect::<Vec<&str>>())
             .collect(),
     );
+    Ok(())
+}
+
+fn list_areas_and_blocks(prog: &mut ProgrammerConnectedNewBitRateSelected) -> io::Result<()> {
+    println!("User boot area blocks");
+    let rows = prog
+        .user_boot_area()?
+        .iter()
+        .map(|r| vec![format!("0x{:x}", r.start()), format!("0x{:x}", r.end())])
+        .collect::<Vec<_>>();
+
+    print_table(
+        vec!["Start address", "End address"],
+        rows.iter()
+            .map(|row| row.iter().map(|s| s.as_str()).collect::<Vec<&str>>())
+            .collect(),
+    );
+
+    println!();
+    println!("User area blocks");
+    let rows = prog
+        .user_area()?
+        .iter()
+        .map(|r| vec![format!("0x{:x}", r.start()), format!("0x{:x}", r.end())])
+        .collect::<Vec<_>>();
+
+    print_table(
+        vec!["Start address", "End address"],
+        rows.iter()
+            .map(|row| row.iter().map(|s| s.as_str()).collect::<Vec<&str>>())
+            .collect(),
+    );
+
+    println!();
+    println!("Erasure blocks");
+    let rows = prog
+        .erasure_block()?
+        .iter()
+        .map(|r| vec![format!("0x{:x}", r.start()), format!("0x{:x}", r.end())])
+        .collect::<Vec<_>>();
+
+    print_table(
+        vec!["Start address", "End address"],
+        rows.iter()
+            .map(|row| row.iter().map(|s| s.as_str()).collect::<Vec<&str>>())
+            .collect(),
+    );
+
     Ok(())
 }
 
@@ -278,11 +326,13 @@ fn main() -> io::Result<()> {
         })
         .collect::<Vec<_>>();
 
-    let mut _prog = prog
+    let mut prog = prog
         .set_new_bit_rate(bit_rate, input_frequency, multiplication_ratios)?
         .expect("Couldn't set new bit rate");
 
     println!("Connected with new bit rate set!");
+
+    list_areas_and_blocks(&mut prog)?;
 
     Ok(())
 }

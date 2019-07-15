@@ -195,3 +195,29 @@ impl ProgrammerConnectedClockModeSelected {
 
 /// A programmer connected to a device, after a new bit rate has been selected
 pub struct ProgrammerConnectedNewBitRateSelected(ProgrammerConnected);
+
+impl ProgrammerConnectedNewBitRateSelected {
+    /// Retrieves the regions which comprise the user boot area
+    pub fn user_boot_area(&mut self) -> io::Result<Vec<RangeInclusive<u32>>> {
+        let cmd = command::commands::UserBootAreaInformationInquiry {};
+        let response = self.0.execute(&cmd)?.unwrap();
+
+        Ok(response)
+    }
+
+    /// Retrieves the regions which comprise the user area
+    pub fn user_area(&mut self) -> io::Result<Vec<RangeInclusive<u32>>> {
+        let cmd = command::commands::UserAreaInformationInquiry {};
+        let response = self.0.execute(&cmd)?.unwrap();
+
+        Ok(response)
+    }
+
+    /// Retrieves the blocks which can be erased
+    pub fn erasure_block(&mut self) -> io::Result<Vec<RangeInclusive<u32>>> {
+        let cmd = command::commands::ErasureBlockInformationInquiry {};
+        let response = self.0.execute(&cmd)?.unwrap();
+
+        Ok(response)
+    }
+}
