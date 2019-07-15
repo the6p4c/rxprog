@@ -32,6 +32,16 @@ impl ResponseSize for u8 {
     }
 }
 
+impl ResponseSize for u16 {
+    fn read_size<T: io::Read>(p: &mut T) -> io::Result<usize> {
+        let mut size = [0u8; 2];
+        p.read_exact(&mut size)?;
+        let size = u16::from_be_bytes(size) as usize;
+
+        Ok(size)
+    }
+}
+
 impl ResponseSize for u32 {
     fn read_size<T: io::Read>(p: &mut T) -> io::Result<usize> {
         let mut size = [0u8; 4];
@@ -343,6 +353,75 @@ mod tests {
             name => unknown,
             response => [0x40],
             rr => |p| ResponseReader::<_, SizedResponse<u8>, NoError>::new(
+                p,
+                ResponseFirstByte::Byte(0x20),
+            ),
+            result => panic
+        );
+    }
+
+    mod sized_response_u16_with_error {
+        use super::*;
+
+        make_test!(
+            name => ok,
+            response => [0x20, 0x00, 0x02, 0x12, 0x34, 0x98],
+            rr => |p| ResponseReader::<_, SizedResponse<u16>, WithError>::new(
+                p,
+                ResponseFirstByte::Byte(0x20),
+                ErrorFirstByte(0x30)
+            ),
+            result => Ok(SizedResponse {
+                data: vec![0x12, 0x34],
+
+                phantom: PhantomData,
+            })
+        );
+
+        make_test!(
+            name => err,
+            response => [0x30, 0xEF],
+            rr => |p| ResponseReader::<_, SizedResponse<u16>, WithError>::new(
+                p,
+                ResponseFirstByte::Byte(0x20),
+                ErrorFirstByte(0x30)
+            ),
+            result => Err(0xEF)
+        );
+
+        make_test!(
+            name => unknown,
+            response => [0x40, 0x00, 0x02, 0x12, 0x34, 0x78],
+            rr => |p| ResponseReader::<_, SizedResponse<u16>, WithError>::new(
+                p,
+                ResponseFirstByte::Byte(0x20),
+                ErrorFirstByte(0x30)
+            ),
+            result => panic
+        );
+    }
+
+    mod sized_response_u16_no_error {
+        use super::*;
+
+        make_test!(
+            name => ok,
+            response => [0x20, 0x00, 0x02, 0x12, 0x34, 0x98],
+            rr => |p| ResponseReader::<_, SizedResponse<u16>, NoError>::new(
+                p,
+                ResponseFirstByte::Byte(0x20)
+            ),
+            result => SizedResponse {
+                data: vec![0x12, 0x34],
+
+                phantom: PhantomData,
+            }
+        );
+
+        make_test!(
+            name => unknown,
+            response => [0x40],
+            rr => |p| ResponseReader::<_, SizedResponse<u16>, NoError>::new(
                 p,
                 ResponseFirstByte::Byte(0x20),
             ),

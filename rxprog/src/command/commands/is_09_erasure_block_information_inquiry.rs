@@ -12,7 +12,7 @@ pub struct ErasureBlockInformationInquiry {}
 impl TransmitCommandData for ErasureBlockInformationInquiry {
     fn command_data(&self) -> CommandData {
         CommandData {
-            opcode: 0x24,
+            opcode: 0x26,
             has_size_field: false,
             payload: vec![],
         }
@@ -25,7 +25,7 @@ impl Receive for ErasureBlockInformationInquiry {
 
     fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
         let mut reader =
-            ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x34));
+            ResponseReader::<_, SizedResponse<u16>, NoError>::new(p, ResponseFirstByte::Byte(0x36));
 
         let data = reader.read_response()?.data;
 
@@ -62,7 +62,7 @@ mod tests {
     #[test]
     fn test_tx() -> io::Result<()> {
         let cmd = ErasureBlockInformationInquiry {};
-        let command_bytes = [0x24];
+        let command_bytes = [0x26];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
         cmd.tx(&mut p)?;
@@ -76,7 +76,7 @@ mod tests {
     fn test_rx() {
         let cmd = ErasureBlockInformationInquiry {};
         let response_bytes = [
-            0x34, 0x11, 0x02, // Header
+            0x36, 0x00, 0x11, 0x02, // Header
             0x10, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, // Area 1
             0x12, 0x34, 0x56, 0x78, 0x89, 0xAB, 0xCD, 0xEF, // Area 2
             0x85, // Checksum
