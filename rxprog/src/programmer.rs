@@ -220,4 +220,67 @@ impl ProgrammerConnectedNewBitRateSelected {
 
         Ok(response)
     }
+
+    /// Transitions into the programming/erasure wait state
+    pub fn programming_erasure_state_transition(
+        mut self,
+    ) -> io::Result<ProgrammerConnectedProgrammingErasureState> {
+        let cmd = command::commands::ProgrammingErasureStateTransition {};
+        let response = self.0.execute(&cmd)?.unwrap();
+
+        match response {
+            command::commands::IDCodeProtectionStatus::Disabled => {
+                Ok(ProgrammerConnectedProgrammingErasureState(self.0))
+            }
+            command::commands::IDCodeProtectionStatus::Enabled => {
+                panic!("Support for ID codes not implemented")
+            }
+        }
+    }
+}
+
+/// A programmer connected to a device, waiting for programming selection commands
+pub struct ProgrammerConnectedProgrammingErasureState(ProgrammerConnected);
+
+impl ProgrammerConnectedProgrammingErasureState {
+    /// Selects the user area and data area for programming
+    pub fn program_user_or_data_area(mut self) -> io::Result<ProgrammerConnectedWaitingForData> {
+        let cmd = command::commands::UserDataAreaProgrammingSelection {};
+        let response = self.0.execute(&cmd)?.unwrap();
+
+        Ok(ProgrammerConnectedWaitingForData(self.0))
+    }
+}
+
+/// A programmer connected to a device, waiting for data to be programmed into the selected area
+pub struct ProgrammerConnectedWaitingForData(ProgrammerConnected);
+
+impl ProgrammerConnectedWaitingForData {
+    /// Writes a block of data to the device
+    pub fn program_block(
+        &mut self,
+        address: u32,
+        data: [u8; 256],
+    ) -> io::Result<Result<(), command::commands::X256ByteProgrammingError>> {
+        let cmd = command::commands::X256ByteProgramming {
+            address: address,
+            data: data,
+        };
+
+        self.0.execute(&cmd)
+    }
+
+    /// Finishes programming
+    pub fn end(mut self) -> io::Result<ProgrammerConnectedProgrammingErasureState> {
+        let cmd = command::commands::X256ByteProgramming {
+            address: 0xFFFFFFFF,
+            data: [0u8; 256],
+        };
+        let response = self.0.execute(&cmd)?;
+
+        match response {
+            Ok(()) => Ok(ProgrammerConnectedProgrammingErasureState(self.0)),
+            Err(_) => panic!("End programming should not give error!"),
+        }
+    }
 }

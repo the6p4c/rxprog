@@ -41,7 +41,9 @@ pub use is_09_erasure_block_information_inquiry::ErasureBlockInformationInquiry;
 pub use is_10_programming_size_inquiry::ProgrammingSizeInquiry;
 pub use is_11a_new_bit_rate_selection::{NewBitRateSelection, NewBitRateSelectionError};
 pub use is_11b_new_bit_rate_selection_confirmation::NewBitRateSelectionConfirmation;
-pub use is_12_programming_erasure_state_transition::ProgrammingErasureStateTransition;
+pub use is_12_programming_erasure_state_transition::{
+    IDCodeProtectionStatus, ProgrammingErasureStateTransition,
+};
 pub use is_13_boot_program_status_inquiry::{
     BootProgramError, BootProgramStatus, BootProgramStatusInquiry, BootProgramStatusInquiryResponse,
 };

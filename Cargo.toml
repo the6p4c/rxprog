@@ -9,5 +9,6 @@ members = ["rxprog"]
 
 [dependencies]
 clap = "~2.27.0"
+ihex = "1.1"
 rxprog = { path = "rxprog" }
 serialport = "3.3.0"

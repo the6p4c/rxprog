@@ -2,7 +2,10 @@ extern crate clap;
 extern crate rxprog;
 extern crate serialport;
 
+mod image;
+
 use std::cmp;
+use std::fs;
 use std::io;
 use std::iter;
 use std::time;
@@ -14,6 +17,8 @@ use rxprog::programmer::{
     ProgrammerConnectedDeviceSelected, ProgrammerConnectedNewBitRateSelected,
 };
 use serialport::prelude::*;
+
+use image::Image;
 
 fn print_table(headings: Vec<&str>, data: Vec<Vec<&str>>) {
     for row in &data {
@@ -245,6 +250,7 @@ fn main() -> io::Result<()> {
                 .takes_value(true)
                 .requires_all(&["bit_rate", "input_frequency"]),
         )
+        .arg(Arg::with_name("image_path").index(1))
         .get_matches();
 
     let port = matches.value_of("port");
@@ -263,7 +269,7 @@ fn main() -> io::Result<()> {
             flow_control: FlowControl::None,
             parity: Parity::None,
             stop_bits: StopBits::One,
-            timeout: time::Duration::from_millis(100),
+            timeout: time::Duration::from_millis(1000),
         },
     )?;
     let mut prog = Programmer::new(p)
@@ -332,7 +338,46 @@ fn main() -> io::Result<()> {
 
     println!("Connected with new bit rate set!");
 
-    list_areas_and_blocks(&mut prog)?;
+    let image_path = matches.value_of("image_path");
+
+    if image_path.is_none() {
+        list_areas_and_blocks(&mut prog)?;
+        return Ok(());
+    }
+
+    let image_path = image_path.unwrap();
+
+    let mut image = Image::new(&prog.user_area()?);
+    let mut address_high = 0u16;
+    for record in ihex::reader::Reader::new(fs::read_to_string(image_path)?.as_str()) {
+        match record.expect("record is Ok") {
+            ihex::record::Record::Data {
+                offset,
+                value: data,
+            } => {
+                let address = ((address_high as u32) << 16) | (offset as u32);
+                image.add_data(address, &data);
+            }
+            ihex::record::Record::ExtendedLinearAddress(ela) => address_high = ela,
+            _ => (),
+        }
+    }
+
+    let mut prog = prog.programming_erasure_state_transition()?;
+    let mut prog = prog.program_user_or_data_area()?;
+    for block in image.programmable_blocks(256) {
+        println!(
+            "Programming {:#X} bytes at {:#X}",
+            block.data.len(),
+            block.start_address
+        );
+
+        let mut data = [0u8; 256];
+        data.copy_from_slice(&block.data);
+        prog.program_block(block.start_address, data)?
+            .expect("Could not program block");
+    }
+    let mut prog = prog.end()?;
 
     Ok(())
 }

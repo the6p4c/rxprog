@@ -77,6 +77,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "ihex"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "lazy_static"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -198,6 +203,7 @@ name = "rxprog-cli"
 version = "0.1.0"
 dependencies = [
  "clap 2.27.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ihex 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rxprog 0.1.0",
  "serialport 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -305,6 +311,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum cc 1.0.37 (registry+https://github.com/rust-lang/crates.io-index)" = "39f75544d7bbaf57560d2168f28fd649ff9c76153874db88bdbdfd839b1a7e7d"
 "checksum cfg-if 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)" = "b486ce3ccf7ffd79fdeb678eac06a9e6c09fc88d33836340becb8fffe87c5e33"
 "checksum clap 2.27.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1b8c532887f1a292d17de05ae858a8fe50a301e196f9ef0ddb7ccd0d1d00f180"
+"checksum ihex 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9394ec1fbc3afbdfb357ba267a7fffdc39f6e3d8ba88c0af6d9476e6d3c889d5"
 "checksum lazy_static 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bc5729f27f159ddd61f4df6228e827e86643d4d3e7c32183cb30a1c08f604a14"
 "checksum libc 0.2.58 (registry+https://github.com/rust-lang/crates.io-index)" = "6281b86796ba5e4366000be6e9e18bf35580adf9e63fbe2294aadb587613a319"
 "checksum libudev 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ea626d3bdf40a1c5aee3bcd4f40826970cae8d80a8fec934c82a63840094dcfe"
