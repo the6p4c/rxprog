@@ -20,7 +20,9 @@ impl TransmitCommandData for X256ByteProgramming {
             payload: {
                 let mut payload = vec![];
                 payload.extend(&self.address.to_be_bytes());
-                payload.extend(self.data.iter());
+                if self.address != 0xFFFFFFFF {
+                    payload.extend(self.data.iter());
+                }
                 payload
             },
         }
@@ -69,7 +71,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx_block() -> io::Result<()> {
         let mut data = [0u8; 256];
         data.copy_from_slice((0u8..=0xFF).collect::<Vec<_>>().as_slice());
         let cmd = X256ByteProgramming {
@@ -98,6 +100,26 @@ mod tests {
             0xEE, 0xEF, 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB,
             0xFC, 0xFD, 0xFE, 0xFF, // Data
             0x1C, // Checksum
+        ];
+        let mut p = mock_io::Builder::new().write(&command_bytes).build();
+
+        cmd.tx(&mut p)?;
+
+        assert!(is_script_complete(&mut p));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_tx_end() -> io::Result<()> {
+        let data = [0u8; 256];
+        let cmd = X256ByteProgramming {
+            address: 0xFFFFFFFF,
+            data: data,
+        };
+        let command_bytes = [
+            0x50, 0xFF, 0xFF, 0xFF, 0xFF, // Header
+            0xB4, // Checksum
         ];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
 
