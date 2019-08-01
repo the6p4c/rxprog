@@ -257,6 +257,9 @@ fn main() -> io::Result<()> {
 
     if port.is_none() {
         list_ports();
+
+        println!();
+        println!("Hint: select a port with -p PORT");
         return Ok(());
     }
 
@@ -279,6 +282,9 @@ fn main() -> io::Result<()> {
 
     if device.is_none() {
         list_devices(&mut prog)?;
+
+        println!();
+        println!("Hint: select a device with -d DEVICE_CODE");
         return Ok(());
     }
 
@@ -290,6 +296,9 @@ fn main() -> io::Result<()> {
 
     if clock_mode.is_none() {
         list_clock_modes(&mut prog)?;
+
+        println!();
+        println!("Hint: select a clock mode with -c CLOCK_MODE");
         return Ok(());
     }
 
@@ -308,6 +317,9 @@ fn main() -> io::Result<()> {
     if bit_rate.is_none() || input_frequency.is_none() || multiplication_ratios.is_none() {
         list_multiplication_ratios(&mut prog)?;
         list_operating_frequencies(&mut prog)?;
+
+        println!();
+        println!("Hint: select an input frequency, multiplication ratio and bit rate with -f INPUT_FREQUENCY -m MULTIPLICATION_RATIOS -b BIT_RATE");
         return Ok(());
     }
 
@@ -342,6 +354,9 @@ fn main() -> io::Result<()> {
 
     if image_path.is_none() {
         list_areas_and_blocks(&mut prog)?;
+
+        println!();
+        println!("Hint: specify an image to program the device");
         return Ok(());
     }
 
