@@ -11,7 +11,7 @@ use std::iter;
 use std::time;
 
 use clap::{App, Arg};
-use rxprog::command::data::MultiplicationRatio;
+use rxprog::command::data::{MemoryArea, MultiplicationRatio};
 use rxprog::programmer::{
     Programmer, ProgrammerConnected, ProgrammerConnectedClockModeSelected,
     ProgrammerConnectedDeviceSelected, ProgrammerConnectedNewBitRateSelected,
@@ -393,6 +393,28 @@ fn main() -> io::Result<()> {
             .expect("Could not program block");
     }
     let mut prog = prog.end()?;
+
+    for block in image.programmable_blocks(256) {
+        println!(
+            "Verifying {:#X} bytes at {:#X}",
+            block.data.len(),
+            block.start_address
+        );
+
+        let programmed_data = prog
+            .read_memory(
+                MemoryArea::UserArea,
+                block.start_address,
+                block.data.len() as u32,
+            )?
+            .expect("Could not read block");
+
+        if programmed_data == block.data {
+            println!("Verified");
+        } else {
+            println!("Falied to verify");
+        }
+    }
 
     Ok(())
 }

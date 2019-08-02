@@ -250,6 +250,22 @@ impl ProgrammerConnectedProgrammingErasureState {
 
         Ok(ProgrammerConnectedWaitingForData(self.0))
     }
+
+    /// Read `size` bytes of memory starting from `start_address`
+    pub fn read_memory(
+        &mut self,
+        area: command::data::MemoryArea,
+        start_address: u32,
+        size: u32,
+    ) -> io::Result<Result<Vec<u8>, command::commands::MemoryReadError>> {
+        let cmd = command::commands::MemoryRead {
+            area,
+            start_address,
+            size,
+        };
+
+        Ok(self.0.execute(&cmd)?)
+    }
 }
 
 /// A programmer connected to a device, waiting for data to be programmed into the selected area
