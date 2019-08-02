@@ -9,5 +9,8 @@ extern crate serialport;
 /// Commands, and command execution
 pub mod command;
 
+/// Connection to a target device
+pub mod target;
+
 /// Interface wrapping a serial port to program a device
 pub mod programmer;

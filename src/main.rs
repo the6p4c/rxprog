@@ -16,6 +16,7 @@ use rxprog::programmer::{
     Programmer, ProgrammerConnected, ProgrammerConnectedClockModeSelected,
     ProgrammerConnectedDeviceSelected, ProgrammerConnectedNewBitRateSelected,
 };
+use rxprog::target::SerialTarget;
 use serialport::prelude::*;
 
 use image::Image;
@@ -275,7 +276,8 @@ fn main() -> io::Result<()> {
             timeout: time::Duration::from_millis(1000),
         },
     )?;
-    let mut prog = Programmer::new(p)
+    let target = SerialTarget::new(p);
+    let mut prog = Programmer::new(Box::new(target))
         .connect()?
         .expect("Couldn't connect to target");
     let device = matches.value_of("device");
