@@ -12,9 +12,9 @@ pub struct Image {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Block {
+pub struct Block<'a> {
     pub start_address: u32,
-    pub data: Vec<u8>,
+    pub data: &'a [u8],
 }
 
 impl Image {
@@ -57,11 +57,10 @@ impl Image {
                     .map(move |(i, chunk)| {
                         let start_address =
                             *region.address_range.start() + (i * block_length) as u32;
-                        let data = chunk.to_vec();
 
                         Block {
                             start_address,
-                            data,
+                            data: chunk,
                         }
                     })
             })
@@ -143,21 +142,21 @@ mod tests {
             pb.next(),
             Some(Block {
                 start_address: 0x0,
-                data: vec![0x00, 0x11, 0x22, 0x33],
+                data: &[0x00, 0x11, 0x22, 0x33],
             })
         );
         assert_eq!(
             pb.next(),
             Some(Block {
                 start_address: 0x20,
-                data: vec![0xFF, 0xFF, 0x22, 0x33],
+                data: &[0xFF, 0xFF, 0x22, 0x33],
             })
         );
         assert_eq!(
             pb.next(),
             Some(Block {
                 start_address: 0x24,
-                data: vec![0x44, 0x55, 0xFF, 0xFF],
+                data: &[0x44, 0x55, 0xFF, 0xFF],
             })
         );
         assert_eq!(pb.next(), None);
