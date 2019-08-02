@@ -1,5 +1,6 @@
 use std::io;
 use std::marker::PhantomData;
+use std::mem;
 
 pub trait ResponseBody: Sized {
     fn read_body<T: io::Read>(p: &mut T, first_byte: u8) -> io::Result<Self>;
@@ -24,7 +25,7 @@ pub trait ResponseSize {
 
 impl ResponseSize for u8 {
     fn read_size<T: io::Read>(p: &mut T) -> io::Result<usize> {
-        let mut size = [0u8; 1];
+        let mut size = [0u8; mem::size_of::<u8>()];
         p.read_exact(&mut size)?;
         let size = size[0] as usize;
 
@@ -34,7 +35,7 @@ impl ResponseSize for u8 {
 
 impl ResponseSize for u16 {
     fn read_size<T: io::Read>(p: &mut T) -> io::Result<usize> {
-        let mut size = [0u8; 2];
+        let mut size = [0u8; mem::size_of::<u16>()];
         p.read_exact(&mut size)?;
         let size = u16::from_be_bytes(size) as usize;
 
@@ -44,7 +45,7 @@ impl ResponseSize for u16 {
 
 impl ResponseSize for u32 {
     fn read_size<T: io::Read>(p: &mut T) -> io::Result<usize> {
-        let mut size = [0u8; 4];
+        let mut size = [0u8; mem::size_of::<u32>()];
         p.read_exact(&mut size)?;
         let size = u32::from_be_bytes(size) as usize;
 

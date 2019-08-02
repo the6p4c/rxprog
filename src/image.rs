@@ -1,5 +1,7 @@
 use std::ops::RangeInclusive;
 
+const UNPROGRAMMED_BYTE: u8 = 0xFF;
+
 #[derive(Debug, PartialEq)]
 struct Region {
     address_range: RangeInclusive<u32>,
@@ -23,7 +25,7 @@ impl Image {
             .iter()
             .map(|address_range| {
                 let length = address_range.end() - address_range.start() + 1;
-                let data = vec![0xFF; length as usize];
+                let data = vec![UNPROGRAMMED_BYTE; length as usize];
 
                 Region {
                     address_range: address_range.clone(),
@@ -64,7 +66,7 @@ impl Image {
                         }
                     })
             })
-            .filter(|block| !block.data.iter().all(|&x| x == 0xFFu8))
+            .filter(|block| !block.data.iter().all(|&x| x == UNPROGRAMMED_BYTE))
     }
 }
 
@@ -82,11 +84,11 @@ mod tests {
                 regions: vec![
                     Region {
                         address_range: 0x0..=0xF,
-                        data: vec![0xFF; 0x10]
+                        data: vec![UNPROGRAMMED_BYTE; 0x10]
                     },
                     Region {
                         address_range: 0x20..=0x2F,
-                        data: vec![0xFF; 0x10]
+                        data: vec![UNPROGRAMMED_BYTE; 0x10]
                     }
                 ]
             }
@@ -107,15 +109,43 @@ mod tests {
                     Region {
                         address_range: 0x0..=0xF,
                         data: vec![
-                            0x00, 0x11, 0x22, 0x33, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                            0xFF, 0xFF, 0xFF, 0xFF
+                            0x00,
+                            0x11,
+                            0x22,
+                            0x33,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE
                         ],
                     },
                     Region {
                         address_range: 0x20..=0x2F,
                         data: vec![
-                            0xFF, 0xFF, 0x22, 0x33, 0x44, 0x55, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-                            0xFF, 0xFF, 0xFF, 0xFF
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            0x22,
+                            0x33,
+                            0x44,
+                            0x55,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE,
+                            UNPROGRAMMED_BYTE
                         ],
                     }
                 ]
@@ -149,14 +179,14 @@ mod tests {
             pb.next(),
             Some(Block {
                 start_address: 0x20,
-                data: &[0xFF, 0xFF, 0x22, 0x33],
+                data: &[UNPROGRAMMED_BYTE, UNPROGRAMMED_BYTE, 0x22, 0x33],
             })
         );
         assert_eq!(
             pb.next(),
             Some(Block {
                 start_address: 0x24,
-                data: &[0x44, 0x55, 0xFF, 0xFF],
+                data: &[0x44, 0x55, UNPROGRAMMED_BYTE, UNPROGRAMMED_BYTE],
             })
         );
         assert_eq!(pb.next(), None);
