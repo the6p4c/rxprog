@@ -4,7 +4,7 @@ use std::thread;
 use std::time;
 
 use crate::command::{self, Command};
-use crate::target::Target;
+use crate::target::{OperatingMode, Target};
 
 /// Error encountered when attempting to make an initial connection to a device
 #[derive(Debug)]
@@ -30,6 +30,8 @@ impl Programmer {
 
     /// Attempts to make an initial connection to the device
     pub fn connect(mut self) -> io::Result<Result<ProgrammerConnected, ConnectError>> {
+        self.target.reset_into(OperatingMode::Boot);
+
         self.target.clear_buffers();
 
         for baud_rate in &[9600, 4800, 2400, 1200, 0] {
