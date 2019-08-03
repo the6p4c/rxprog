@@ -17,7 +17,7 @@ impl TransmitCommandData for UserBootAreaChecksum {
 impl Receive for UserBootAreaChecksum {
     type Response = u32;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader =
             ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x5A));
 
@@ -28,7 +28,7 @@ impl Receive for UserBootAreaChecksum {
 
         let checksum = u32::from_be_bytes(checksum_bytes);
 
-        Ok(Ok(checksum))
+        Ok(checksum)
     }
 }
 
@@ -38,7 +38,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = UserBootAreaChecksum {};
         let command_bytes = [0x4A];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -56,7 +56,7 @@ mod tests {
         let response_bytes = [0x5A, 0x04, 0x12, 0x34, 0x56, 0x78, 0x8E];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(0x12345678));
         assert!(is_script_complete(&mut p));

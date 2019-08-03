@@ -22,7 +22,7 @@ impl TransmitCommandData for DeviceSelection {
 impl Receive for DeviceSelection {
     type Response = ();
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
@@ -31,14 +31,14 @@ impl Receive for DeviceSelection {
 
         let response = reader.read_response()?;
 
-        Ok(match response {
+        match response {
             Ok(_) => Ok(()),
             Err(error_code) => Err(match error_code {
-                0x11 => CommandError::Checksum,
-                0x21 => CommandError::DeviceCode,
+                0x11 => CommandError::Checksum.into(),
+                0x21 => CommandError::DeviceCode.into(),
                 _ => panic!("Unknown error code"),
             }),
-        })
+        }
     }
 }
 
@@ -48,7 +48,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = DeviceSelection {
             device_code: "DEV1".to_string(),
         };
@@ -70,7 +70,7 @@ mod tests {
         let response_bytes = [0x06];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(()));
         assert!(is_script_complete(&mut p));
@@ -84,9 +84,9 @@ mod tests {
         let response_bytes = [0x90, 0x21];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
-        assert_eq!(response, Err(CommandError::DeviceCode));
+        assert_eq!(response, Err(CommandError::DeviceCode.into()));
         assert!(is_script_complete(&mut p));
     }
 }

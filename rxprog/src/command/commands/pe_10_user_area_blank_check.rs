@@ -17,7 +17,7 @@ impl TransmitCommandData for UserAreaBlankCheck {
 impl Receive for UserAreaBlankCheck {
     type Response = ErasureState;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
@@ -34,7 +34,7 @@ impl Receive for UserAreaBlankCheck {
             },
         };
 
-        Ok(Ok(state))
+        Ok(state)
     }
 }
 
@@ -44,7 +44,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = UserAreaBlankCheck {};
         let command_bytes = [0x4D];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -62,7 +62,7 @@ mod tests {
         let response_bytes = [0x06];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(ErasureState::Blank));
         assert!(is_script_complete(&mut p));
@@ -74,7 +74,7 @@ mod tests {
         let response_bytes = [0xCD, 0x52];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(ErasureState::NotBlank));
         assert!(is_script_complete(&mut p));

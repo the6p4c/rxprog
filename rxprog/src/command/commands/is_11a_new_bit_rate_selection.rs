@@ -32,7 +32,7 @@ impl TransmitCommandData for NewBitRateSelection {
 impl Receive for NewBitRateSelection {
     type Response = ();
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
@@ -41,17 +41,17 @@ impl Receive for NewBitRateSelection {
 
         let response = reader.read_response()?;
 
-        Ok(match response {
+        match response {
             Ok(_) => Ok(()),
             Err(error_code) => match error_code {
-                0x11 => Err(CommandError::Checksum),
-                0x24 => Err(CommandError::BitRateSelection),
-                0x25 => Err(CommandError::InputFrequency),
-                0x26 => Err(CommandError::MultiplicationRatio),
-                0x27 => Err(CommandError::OperatingFrequency),
+                0x11 => Err(CommandError::Checksum.into()),
+                0x24 => Err(CommandError::BitRateSelection.into()),
+                0x25 => Err(CommandError::InputFrequency.into()),
+                0x26 => Err(CommandError::MultiplicationRatio.into()),
+                0x27 => Err(CommandError::OperatingFrequency.into()),
                 _ => panic!("Unknown error code"),
             },
-        })
+        }
     }
 }
 
@@ -61,7 +61,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = NewBitRateSelection {
             bit_rate: 0x00C0,
             input_frequency: 0x04E2,
@@ -93,7 +93,7 @@ mod tests {
         let response_bytes = [0x06];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(()));
         assert!(is_script_complete(&mut p));
@@ -112,9 +112,9 @@ mod tests {
         let response_bytes = [0xBF, 0x24];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
-        assert_eq!(response, Err(CommandError::BitRateSelection));
+        assert_eq!(response, Err(CommandError::BitRateSelection.into()));
         assert!(is_script_complete(&mut p));
     }
 }

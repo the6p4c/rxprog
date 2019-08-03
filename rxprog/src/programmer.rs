@@ -1,10 +1,10 @@
-use std::io;
 use std::ops::RangeInclusive;
 use std::thread;
 use std::time;
 
-use crate::command::{self, Command, CommandError};
+use crate::command::{self, Command};
 use crate::target::{OperatingMode, Target};
+use crate::{Error, ErrorKind, Result};
 
 /// Error encountered when attempting to make an initial connection to a device
 #[derive(Debug)]
@@ -29,14 +29,14 @@ impl Programmer {
     }
 
     /// Attempts to make an initial connection to the device
-    pub fn connect(mut self) -> io::Result<Result<ProgrammerConnected, ConnectError>> {
+    pub fn connect(mut self) -> Result<ProgrammerConnected> {
         self.target.reset_into(OperatingMode::Boot);
 
         self.target.clear_buffers()?;
 
         for baud_rate in &[9600, 4800, 2400, 1200, 0] {
             if *baud_rate == 0 {
-                return Ok(Err(ConnectError::NoResponse));
+                return Err(Error::new(ErrorKind::Connect, "no response from target"));
             }
 
             self.target.set_baud_rate(*baud_rate)?;
@@ -59,7 +59,7 @@ impl Programmer {
         let response1 = response1[0];
 
         if response1 != 0x00 {
-            return Ok(Err(ConnectError::BadResponse));
+            return Err(Error::new(ErrorKind::Connect, "bad response from target"));
         }
 
         self.target.write(&[0x55])?;
@@ -68,13 +68,13 @@ impl Programmer {
         self.target.read_exact(&mut response2)?;
         let response2 = response2[0];
 
-        Ok(match response2 {
+        match response2 {
             0xE6 => Ok(ProgrammerConnected {
                 target: self.target,
             }),
-            0xFF => Err(ConnectError::Failed),
-            _ => Err(ConnectError::BadResponse),
-        })
+            0xFF => Err(Error::new(ErrorKind::Connect, "failed to connect")),
+            _ => Err(Error::new(ErrorKind::Connect, "bad response from target")),
+        }
     }
 }
 
@@ -85,28 +85,23 @@ pub struct ProgrammerConnected {
 
 impl ProgrammerConnected {
     /// Retrieve a list of devices supported by the target
-    pub fn supported_devices(&mut self) -> io::Result<Vec<command::data::SupportedDevice>> {
+    pub fn supported_devices(&mut self) -> Result<Vec<command::data::SupportedDevice>> {
         let cmd = command::commands::SupportedDeviceInquiry {};
-        let devices = cmd.execute(&mut self.target)?.unwrap();
-
-        Ok(devices)
+        cmd.execute(&mut self.target)
     }
 
     /// Selects a device
     pub fn select_device(
         mut self,
         device_code: &String,
-    ) -> io::Result<Result<ProgrammerConnectedDeviceSelected, CommandError>> {
+    ) -> Result<ProgrammerConnectedDeviceSelected> {
         let cmd = command::commands::DeviceSelection {
             device_code: device_code.clone(),
         };
-        let response = cmd.execute(&mut self.target)?;
+        cmd.execute(&mut self.target)?;
 
-        Ok(match response {
-            Ok(()) => Ok(ProgrammerConnectedDeviceSelected {
-                target: self.target,
-            }),
-            Err(x) => Err(x),
+        Ok(ProgrammerConnectedDeviceSelected {
+            target: self.target,
         })
     }
 }
@@ -118,26 +113,21 @@ pub struct ProgrammerConnectedDeviceSelected {
 
 impl ProgrammerConnectedDeviceSelected {
     /// Retrieve a list of supported clock modes
-    pub fn clock_modes(&mut self) -> io::Result<Vec<u8>> {
+    pub fn clock_modes(&mut self) -> Result<Vec<u8>> {
         let cmd = command::commands::ClockModeInquiry {};
-        let clock_modes = cmd.execute(&mut self.target)?.unwrap();
-
-        Ok(clock_modes)
+        cmd.execute(&mut self.target)
     }
 
     /// Selects a clock mode
     pub fn select_clock_mode(
         mut self,
         clock_mode: u8,
-    ) -> io::Result<Result<ProgrammerConnectedClockModeSelected, CommandError>> {
+    ) -> Result<ProgrammerConnectedClockModeSelected> {
         let cmd = command::commands::ClockModeSelection { mode: clock_mode };
-        let response = cmd.execute(&mut self.target)?;
+        cmd.execute(&mut self.target)?;
 
-        Ok(match response {
-            Ok(()) => Ok(ProgrammerConnectedClockModeSelected {
-                target: self.target,
-            }),
-            Err(x) => Err(x),
+        Ok(ProgrammerConnectedClockModeSelected {
+            target: self.target,
         })
     }
 }
@@ -151,19 +141,15 @@ impl ProgrammerConnectedClockModeSelected {
     /// Retrieve a list of multiplication ratios supported by each clock
     pub fn multiplication_ratios(
         &mut self,
-    ) -> io::Result<Vec<Vec<command::data::MultiplicationRatio>>> {
+    ) -> Result<Vec<Vec<command::data::MultiplicationRatio>>> {
         let cmd = command::commands::MultiplicationRatioInquiry {};
-        let multiplication_ratios = cmd.execute(&mut self.target)?.unwrap();
-
-        Ok(multiplication_ratios)
+        cmd.execute(&mut self.target)
     }
 
     /// Retrive the operating frequency range of each clock
-    pub fn operating_frequencies(&mut self) -> io::Result<Vec<RangeInclusive<u16>>> {
+    pub fn operating_frequencies(&mut self) -> Result<Vec<RangeInclusive<u16>>> {
         let cmd = command::commands::OperatingFrequencyInquiry {};
-        let operating_frequencies = cmd.execute(&mut self.target)?.unwrap();
-
-        Ok(operating_frequencies)
+        cmd.execute(&mut self.target)
     }
 
     /// Sets a new bit rate for the device connection
@@ -172,27 +158,22 @@ impl ProgrammerConnectedClockModeSelected {
         bit_rate: u16,
         input_frequency: u16,
         multiplication_ratios: Vec<command::data::MultiplicationRatio>,
-    ) -> io::Result<Result<ProgrammerConnectedNewBitRateSelected, CommandError>> {
+    ) -> Result<ProgrammerConnectedNewBitRateSelected> {
         let cmd = command::commands::NewBitRateSelection {
             bit_rate: bit_rate,
             input_frequency: input_frequency,
             multiplication_ratios: multiplication_ratios,
         };
-        let response = cmd.execute(&mut self.target)?;
+        cmd.execute(&mut self.target)?;
 
-        Ok(match response {
-            Ok(()) => {
-                let baud_rate: u32 = (bit_rate * 100).into();
-                self.target.set_baud_rate(baud_rate)?;
+        let baud_rate: u32 = (bit_rate * 100).into();
+        self.target.set_baud_rate(baud_rate)?;
 
-                let cmd = command::commands::NewBitRateSelectionConfirmation {};
-                let _response = cmd.execute(&mut self.target)?;
+        let cmd = command::commands::NewBitRateSelectionConfirmation {};
+        cmd.execute(&mut self.target)?;
 
-                Ok(ProgrammerConnectedNewBitRateSelected {
-                    target: self.target,
-                })
-            }
-            Err(x) => Err(x),
+        Ok(ProgrammerConnectedNewBitRateSelected {
+            target: self.target,
         })
     }
 }
@@ -204,35 +185,29 @@ pub struct ProgrammerConnectedNewBitRateSelected {
 
 impl ProgrammerConnectedNewBitRateSelected {
     /// Retrieves the regions which comprise the user boot area
-    pub fn user_boot_area(&mut self) -> io::Result<Vec<RangeInclusive<u32>>> {
+    pub fn user_boot_area(&mut self) -> Result<Vec<RangeInclusive<u32>>> {
         let cmd = command::commands::UserBootAreaInformationInquiry {};
-        let response = cmd.execute(&mut self.target)?.unwrap();
-
-        Ok(response)
+        cmd.execute(&mut self.target)
     }
 
     /// Retrieves the regions which comprise the user area
-    pub fn user_area(&mut self) -> io::Result<Vec<RangeInclusive<u32>>> {
+    pub fn user_area(&mut self) -> Result<Vec<RangeInclusive<u32>>> {
         let cmd = command::commands::UserAreaInformationInquiry {};
-        let response = cmd.execute(&mut self.target)?.unwrap();
-
-        Ok(response)
+        cmd.execute(&mut self.target)
     }
 
     /// Retrieves the blocks which can be erased
-    pub fn erasure_block(&mut self) -> io::Result<Vec<RangeInclusive<u32>>> {
+    pub fn erasure_block(&mut self) -> Result<Vec<RangeInclusive<u32>>> {
         let cmd = command::commands::ErasureBlockInformationInquiry {};
-        let response = cmd.execute(&mut self.target)?.unwrap();
-
-        Ok(response)
+        cmd.execute(&mut self.target)
     }
 
     /// Transitions into the programming/erasure wait state
     pub fn programming_erasure_state_transition(
         mut self,
-    ) -> io::Result<ProgrammerConnectedProgrammingErasureState> {
+    ) -> Result<ProgrammerConnectedProgrammingErasureState> {
         let cmd = command::commands::ProgrammingErasureStateTransition {};
-        let response = cmd.execute(&mut self.target)?.unwrap();
+        let response = cmd.execute(&mut self.target)?;
 
         match response {
             command::commands::IDCodeProtectionStatus::Disabled => {
@@ -254,9 +229,9 @@ pub struct ProgrammerConnectedProgrammingErasureState {
 
 impl ProgrammerConnectedProgrammingErasureState {
     /// Selects the user area and data area for programming
-    pub fn program_user_or_data_area(mut self) -> io::Result<ProgrammerConnectedWaitingForData> {
+    pub fn program_user_or_data_area(mut self) -> Result<ProgrammerConnectedWaitingForData> {
         let cmd = command::commands::UserDataAreaProgrammingSelection {};
-        let response = cmd.execute(&mut self.target)?.unwrap();
+        cmd.execute(&mut self.target)?;
 
         Ok(ProgrammerConnectedWaitingForData {
             target: self.target,
@@ -269,14 +244,13 @@ impl ProgrammerConnectedProgrammingErasureState {
         area: command::data::MemoryArea,
         start_address: u32,
         size: u32,
-    ) -> io::Result<Result<Vec<u8>, CommandError>> {
+    ) -> Result<Vec<u8>> {
         let cmd = command::commands::MemoryRead {
             area,
             start_address,
             size,
         };
-
-        Ok(cmd.execute(&mut self.target)?)
+        cmd.execute(&mut self.target)
     }
 }
 
@@ -287,32 +261,24 @@ pub struct ProgrammerConnectedWaitingForData {
 
 impl ProgrammerConnectedWaitingForData {
     /// Writes a block of data to the device
-    pub fn program_block(
-        &mut self,
-        address: u32,
-        data: [u8; 256],
-    ) -> io::Result<Result<(), CommandError>> {
+    pub fn program_block(&mut self, address: u32, data: [u8; 256]) -> Result<()> {
         let cmd = command::commands::X256ByteProgramming {
             address: address,
             data: data,
         };
-
         cmd.execute(&mut self.target)
     }
 
     /// Finishes programming
-    pub fn end(mut self) -> io::Result<ProgrammerConnectedProgrammingErasureState> {
+    pub fn end(mut self) -> Result<ProgrammerConnectedProgrammingErasureState> {
         let cmd = command::commands::X256ByteProgramming {
             address: 0xFFFFFFFF,
             data: [0u8; 256],
         };
-        let response = cmd.execute(&mut self.target)?;
+        cmd.execute(&mut self.target)?;
 
-        match response {
-            Ok(()) => Ok(ProgrammerConnectedProgrammingErasureState {
-                target: self.target,
-            }),
-            Err(_) => panic!("End programming should not give error!"),
-        }
+        Ok(ProgrammerConnectedProgrammingErasureState {
+            target: self.target,
+        })
     }
 }

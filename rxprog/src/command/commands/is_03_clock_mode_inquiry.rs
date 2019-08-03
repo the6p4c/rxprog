@@ -17,13 +17,13 @@ impl TransmitCommandData for ClockModeInquiry {
 impl Receive for ClockModeInquiry {
     type Response = Vec<u8>;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader =
             ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x31));
 
         let data = reader.read_response()?.data;
 
-        Ok(Ok(data.to_vec()))
+        Ok(data.to_vec())
     }
 }
 
@@ -33,7 +33,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = ClockModeInquiry {};
         let command_bytes = [0x21];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -51,7 +51,7 @@ mod tests {
         let response_bytes = [0x31, 0x02, 0x00, 0x01, 0xCC];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(vec![0x00, 0x01]));
         assert!(is_script_complete(&mut p));

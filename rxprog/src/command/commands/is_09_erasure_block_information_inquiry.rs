@@ -19,7 +19,7 @@ impl TransmitCommandData for ErasureBlockInformationInquiry {
 impl Receive for ErasureBlockInformationInquiry {
     type Response = Vec<RangeInclusive<u32>>;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader =
             ResponseReader::<_, SizedResponse<u16>, NoError>::new(p, ResponseFirstByte::Byte(0x36));
 
@@ -46,7 +46,7 @@ impl Receive for ErasureBlockInformationInquiry {
             remaining_data = new_remaining_data;
         }
 
-        Ok(Ok(areas))
+        Ok(areas)
     }
 }
 
@@ -56,7 +56,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = ErasureBlockInformationInquiry {};
         let command_bytes = [0x26];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -79,7 +79,7 @@ mod tests {
         ];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(
             response,

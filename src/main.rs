@@ -5,8 +5,8 @@ extern crate serialport;
 mod image;
 
 use std::cmp;
+use std::error;
 use std::fs;
-use std::io;
 use std::iter;
 use std::time;
 
@@ -70,7 +70,7 @@ fn list_ports() {
     );
 }
 
-fn list_devices(prog: &mut ProgrammerConnected) -> io::Result<()> {
+fn list_devices(prog: &mut ProgrammerConnected) -> rxprog::Result<()> {
     let devices = prog.supported_devices()?;
     print_table(
         vec!["Device code", "Series name"],
@@ -83,7 +83,7 @@ fn list_devices(prog: &mut ProgrammerConnected) -> io::Result<()> {
     Ok(())
 }
 
-fn list_clock_modes(prog: &mut ProgrammerConnectedDeviceSelected) -> io::Result<()> {
+fn list_clock_modes(prog: &mut ProgrammerConnectedDeviceSelected) -> rxprog::Result<()> {
     let clock_modes = prog.clock_modes()?;
     let rows = clock_modes
         .iter()
@@ -99,7 +99,9 @@ fn list_clock_modes(prog: &mut ProgrammerConnectedDeviceSelected) -> io::Result<
     Ok(())
 }
 
-fn list_multiplication_ratios(prog: &mut ProgrammerConnectedClockModeSelected) -> io::Result<()> {
+fn list_multiplication_ratios(
+    prog: &mut ProgrammerConnectedClockModeSelected,
+) -> rxprog::Result<()> {
     let multiplication_ratios = prog.multiplication_ratios()?;
     let rows = multiplication_ratios
         .iter()
@@ -128,7 +130,9 @@ fn list_multiplication_ratios(prog: &mut ProgrammerConnectedClockModeSelected) -
     Ok(())
 }
 
-fn list_operating_frequencies(prog: &mut ProgrammerConnectedClockModeSelected) -> io::Result<()> {
+fn list_operating_frequencies(
+    prog: &mut ProgrammerConnectedClockModeSelected,
+) -> rxprog::Result<()> {
     let operating_frequencies = prog.operating_frequencies()?;
     let rows = operating_frequencies
         .iter()
@@ -154,7 +158,7 @@ fn list_operating_frequencies(prog: &mut ProgrammerConnectedClockModeSelected) -
     Ok(())
 }
 
-fn list_areas_and_blocks(prog: &mut ProgrammerConnectedNewBitRateSelected) -> io::Result<()> {
+fn list_areas_and_blocks(prog: &mut ProgrammerConnectedNewBitRateSelected) -> rxprog::Result<()> {
     println!("User boot area blocks");
     let rows = prog
         .user_boot_area()?
@@ -202,7 +206,7 @@ fn list_areas_and_blocks(prog: &mut ProgrammerConnectedNewBitRateSelected) -> io
     Ok(())
 }
 
-fn main() -> io::Result<()> {
+fn main() -> Result<(), Box<dyn error::Error>> {
     let matches = App::new("rxprog-cli")
         .arg(
             Arg::with_name("port")
@@ -283,9 +287,7 @@ fn main() -> io::Result<()> {
         },
     )?;
     let target = SerialTarget::new(p);
-    let mut prog = Programmer::new(Box::new(target))
-        .connect()?
-        .expect("Couldn't connect to target");
+    let mut prog = Programmer::new(Box::new(target)).connect()?;
     let device = matches.value_of("device");
 
     if device.is_none() {
@@ -297,9 +299,7 @@ fn main() -> io::Result<()> {
     }
 
     let device = device.unwrap();
-    let mut prog = prog
-        .select_device(&device.to_string())?
-        .expect("Couldn't select device");
+    let mut prog = prog.select_device(&device.to_string())?;
     let clock_mode = matches.value_of("clock_mode");
 
     if clock_mode.is_none() {
@@ -314,9 +314,7 @@ fn main() -> io::Result<()> {
         .unwrap()
         .parse::<u8>()
         .expect("Invalid clock mode");
-    let mut prog = prog
-        .select_clock_mode(clock_mode)?
-        .expect("Couldn't select clock mode");
+    let mut prog = prog.select_clock_mode(clock_mode)?;
 
     let bit_rate = matches.value_of("bit_rate");
     let input_frequency = matches.value_of("input_frequency");
@@ -352,9 +350,7 @@ fn main() -> io::Result<()> {
         })
         .collect::<Vec<_>>();
 
-    let mut prog = prog
-        .set_new_bit_rate(bit_rate, input_frequency, multiplication_ratios)?
-        .expect("Couldn't set new bit rate");
+    let mut prog = prog.set_new_bit_rate(bit_rate, input_frequency, multiplication_ratios)?;
 
     println!("Connected with new bit rate set!");
 
@@ -386,7 +382,7 @@ fn main() -> io::Result<()> {
         }
     }
 
-    let mut prog = prog.programming_erasure_state_transition()?;
+    let prog = prog.programming_erasure_state_transition()?;
     let mut prog = prog.program_user_or_data_area()?;
     for block in image.programmable_blocks(256) {
         println!(
@@ -397,8 +393,7 @@ fn main() -> io::Result<()> {
 
         let mut data = [0u8; 256];
         data.copy_from_slice(&block.data);
-        prog.program_block(block.start_address, data)?
-            .expect("Could not program block");
+        prog.program_block(block.start_address, data)?;
     }
     let mut prog = prog.end()?;
 
@@ -409,13 +404,11 @@ fn main() -> io::Result<()> {
             block.start_address
         );
 
-        let programmed_data = prog
-            .read_memory(
-                MemoryArea::UserArea,
-                block.start_address,
-                block.data.len() as u32,
-            )?
-            .expect("Could not read block");
+        let programmed_data = prog.read_memory(
+            MemoryArea::UserArea,
+            block.start_address,
+            block.data.len() as u32,
+        )?;
 
         if programmed_data == block.data {
             println!("Verified");

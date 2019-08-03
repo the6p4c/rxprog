@@ -33,7 +33,7 @@ impl TransmitCommandData for MemoryRead {
 impl Receive for MemoryRead {
     type Response = Vec<u8>;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader = ResponseReader::<_, SizedResponse<u32>, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x52),
@@ -42,15 +42,15 @@ impl Receive for MemoryRead {
 
         let response = reader.read_response()?;
 
-        Ok(match response {
+        match response {
             Ok(SizedResponse { data, .. }) => Ok(data),
             Err(error_code) => Err(match error_code {
-                0x11 => CommandError::Checksum,
-                0x2A => CommandError::Address,
-                0x2B => CommandError::DataSize,
+                0x11 => CommandError::Checksum.into(),
+                0x2A => CommandError::Address.into(),
+                0x2B => CommandError::DataSize.into(),
                 _ => panic!("Unknown error code"),
             }),
-        })
+        }
     }
 }
 
@@ -60,7 +60,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = MemoryRead {
             area: MemoryArea::UserArea,
             start_address: 0x12345678,
@@ -91,7 +91,7 @@ mod tests {
         ];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(
             response,
@@ -112,9 +112,9 @@ mod tests {
         let response_bytes = [0xD2, 0x2A];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
-        assert_eq!(response, Err(CommandError::Address));
+        assert_eq!(response, Err(CommandError::Address.into()));
         assert!(is_script_complete(&mut p));
     }
 }

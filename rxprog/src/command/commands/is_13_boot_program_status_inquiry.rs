@@ -127,7 +127,7 @@ pub struct BootProgramStatusInquiryResponse {
 impl Receive for BootProgramStatusInquiry {
     type Response = BootProgramStatusInquiryResponse;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader =
             ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x5F));
 
@@ -136,10 +136,10 @@ impl Receive for BootProgramStatusInquiry {
         let status = BootProgramStatus::from(data[0]);
         let error = BootProgramError::from(data[1]);
 
-        Ok(Ok(BootProgramStatusInquiryResponse {
+        Ok(BootProgramStatusInquiryResponse {
             status: status,
             error: error,
-        }))
+        })
     }
 }
 
@@ -149,7 +149,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = BootProgramStatusInquiry {};
         let command_bytes = [0x4F];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -167,7 +167,7 @@ mod tests {
         let response_bytes = [0x5F, 0x02, 0x13, 0x24, 0x68];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(
             response,

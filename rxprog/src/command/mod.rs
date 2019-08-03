@@ -19,4 +19,5 @@ mod command_impl_prelude {
     pub use super::command::*;
     pub use super::data::*;
     pub use super::reader::*;
+    pub use crate::Result;
 }

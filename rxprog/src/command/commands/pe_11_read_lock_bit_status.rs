@@ -36,7 +36,7 @@ impl TransmitCommandData for ReadLockBitStatus {
 impl Receive for ReadLockBitStatus {
     type Response = LockBitStatus;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::OneByteOf(vec![0x00, 0x40]),
@@ -45,18 +45,18 @@ impl Receive for ReadLockBitStatus {
 
         let response = reader.read_response()?;
 
-        Ok(match response {
+        match response {
             Ok(SimpleResponse { first_byte }) => match first_byte {
                 0x00 => Ok(LockBitStatus::Locked),
                 0x40 => Ok(LockBitStatus::Unlocked),
                 _ => panic!("Response with unknown first byte"),
             },
             Err(error_code) => Err(match error_code {
-                0x11 => CommandError::Checksum,
-                0x2A => CommandError::Address,
+                0x11 => CommandError::Checksum.into(),
+                0x2A => CommandError::Address.into(),
                 _ => panic!("Unknown error code"),
             }),
-        })
+        }
     }
 }
 
@@ -66,7 +66,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = ReadLockBitStatus {
             area: MemoryArea::UserArea,
             a15_to_a8: 0x00,
@@ -94,7 +94,7 @@ mod tests {
         let response_bytes = [0x00];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(LockBitStatus::Locked));
         assert!(is_script_complete(&mut p));
@@ -111,7 +111,7 @@ mod tests {
         let response_bytes = [0x40];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(LockBitStatus::Unlocked));
         assert!(is_script_complete(&mut p));
@@ -128,9 +128,9 @@ mod tests {
         let response_bytes = [0xF1, 0x2A];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
-        assert_eq!(response, Err(CommandError::Address));
+        assert_eq!(response, Err(CommandError::Address.into()));
         assert!(is_script_complete(&mut p));
     }
 }

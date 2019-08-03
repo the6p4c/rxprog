@@ -29,7 +29,7 @@ impl TransmitCommandData for X256ByteProgramming {
 impl Receive for X256ByteProgramming {
     type Response = ();
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
@@ -38,15 +38,15 @@ impl Receive for X256ByteProgramming {
 
         let response = reader.read_response()?;
 
-        Ok(match response {
+        match response {
             Ok(_) => Ok(()),
             Err(error_code) => Err(match error_code {
-                0x11 => CommandError::Checksum,
-                0x2A => CommandError::Address,
-                0x53 => CommandError::Programming,
+                0x11 => CommandError::Checksum.into(),
+                0x2A => CommandError::Address.into(),
+                0x53 => CommandError::Programming.into(),
                 _ => panic!("Unknown error code"),
             }),
-        })
+        }
     }
 }
 
@@ -56,7 +56,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx_block() -> io::Result<()> {
+    fn test_tx_block() -> Result<()> {
         let mut data = [0u8; 256];
         data.copy_from_slice((0u8..=0xFF).collect::<Vec<_>>().as_slice());
         let cmd = X256ByteProgramming {
@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn test_tx_end() -> io::Result<()> {
+    fn test_tx_end() -> Result<()> {
         let data = [0u8; 256];
         let cmd = X256ByteProgramming {
             address: 0xFFFFFFFF,
@@ -126,7 +126,7 @@ mod tests {
         let response_bytes = [0x06];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(()));
         assert!(is_script_complete(&mut p));
@@ -143,9 +143,9 @@ mod tests {
         let response_bytes = [0xD0, 0x2A];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
-        assert_eq!(response, Err(CommandError::Address));
+        assert_eq!(response, Err(CommandError::Address.into()));
         assert!(is_script_complete(&mut p));
     }
 }

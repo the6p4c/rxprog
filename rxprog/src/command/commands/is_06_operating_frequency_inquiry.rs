@@ -19,7 +19,7 @@ impl TransmitCommandData for OperatingFrequencyInquiry {
 impl Receive for OperatingFrequencyInquiry {
     type Response = Vec<RangeInclusive<u16>>;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader =
             ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x33));
 
@@ -45,7 +45,7 @@ impl Receive for OperatingFrequencyInquiry {
             remaining_data = &new_remaining_data;
         }
 
-        Ok(Ok(clock_types))
+        Ok(clock_types)
     }
 }
 
@@ -55,7 +55,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = OperatingFrequencyInquiry {};
         let command_bytes = [0x23];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -78,7 +78,7 @@ mod tests {
         ];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(vec![1000..=2000, 100..=10000]));
         assert!(is_script_complete(&mut p));

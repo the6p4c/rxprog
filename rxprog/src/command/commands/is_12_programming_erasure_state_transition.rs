@@ -27,7 +27,7 @@ impl TransmitCommandData for ProgrammingErasureStateTransition {
 impl Receive for ProgrammingErasureStateTransition {
     type Response = IDCodeProtectionStatus;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::OneByteOf(vec![0x26, 0x16]),
@@ -36,16 +36,16 @@ impl Receive for ProgrammingErasureStateTransition {
 
         let response = reader.read_response()?;
 
-        Ok(match response {
+        match response {
             Ok(SimpleResponse { first_byte }) => match first_byte {
                 0x26 => Ok(IDCodeProtectionStatus::Disabled),
                 0x16 => Ok(IDCodeProtectionStatus::Enabled),
                 // TODO: Consider modifying ResponseReader so this can't happen
                 _ => panic!("Response with unknown first byte"),
             },
-            Err(0x51) => Err(CommandError::ProgrammingErasureStateTransition),
+            Err(0x51) => Err(CommandError::ProgrammingErasureStateTransition.into()),
             Err(_) => panic!("Error with unknown second byte"),
-        })
+        }
     }
 }
 
@@ -55,7 +55,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = ProgrammingErasureStateTransition {};
         let command_bytes = [0x40];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -73,7 +73,7 @@ mod tests {
         let response_bytes = [0x26];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(IDCodeProtectionStatus::Disabled));
         assert!(is_script_complete(&mut p));
@@ -85,7 +85,7 @@ mod tests {
         let response_bytes = vec![0x16];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(IDCodeProtectionStatus::Enabled));
         assert!(is_script_complete(&mut p));
@@ -97,11 +97,11 @@ mod tests {
         let response_bytes = vec![0xC0, 0x51];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(
             response,
-            Err(CommandError::ProgrammingErasureStateTransition)
+            Err(CommandError::ProgrammingErasureStateTransition.into())
         );
         assert!(is_script_complete(&mut p));
     }

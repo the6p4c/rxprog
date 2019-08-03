@@ -19,7 +19,7 @@ impl TransmitCommandData for UserAreaInformationInquiry {
 impl Receive for UserAreaInformationInquiry {
     type Response = Vec<RangeInclusive<u32>>;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader =
             ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x35));
 
@@ -46,7 +46,7 @@ impl Receive for UserAreaInformationInquiry {
             remaining_data = new_remaining_data;
         }
 
-        Ok(Ok(areas))
+        Ok(areas)
     }
 }
 
@@ -56,7 +56,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = UserAreaInformationInquiry {};
         let command_bytes = [0x25];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -79,7 +79,7 @@ mod tests {
         ];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(
             response,

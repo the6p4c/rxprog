@@ -2,20 +2,19 @@ use std::fmt;
 use std::io;
 use std::num::Wrapping;
 
+use crate::Result;
+
 /// A command which can be sent to a device, and results in either a response or error
 pub trait Command {
     /// Result of a successful command execution
     type Response;
 
     /// Executes the command on a device
-    fn execute<T: io::Read + io::Write>(
-        &self,
-        p: &mut T,
-    ) -> io::Result<Result<Self::Response, CommandError>>;
+    fn execute<T: io::Read + io::Write>(&self, p: &mut T) -> Result<Self::Response>;
 }
 
 pub trait Transmit {
-    fn tx<T: io::Write>(&self, p: &mut T) -> io::Result<()>;
+    fn tx<T: io::Write>(&self, p: &mut T) -> Result<()>;
 }
 
 pub struct CommandData {
@@ -53,7 +52,7 @@ pub trait TransmitCommandData {
 }
 
 impl<T: TransmitCommandData> Transmit for T {
-    fn tx<U: io::Write>(&self, p: &mut U) -> io::Result<()> {
+    fn tx<U: io::Write>(&self, p: &mut U) -> Result<()> {
         p.write(&self.command_data().bytes())?;
         p.flush()?;
 
@@ -64,18 +63,15 @@ impl<T: TransmitCommandData> Transmit for T {
 pub trait Receive {
     type Response;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>>;
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response>;
 }
 
 impl<T: Transmit + Receive> Command for T {
     type Response = T::Response;
 
-    fn execute<U: io::Read + io::Write>(
-        &self,
-        p: &mut U,
-    ) -> io::Result<Result<Self::Response, CommandError>> {
+    fn execute<U: io::Read + io::Write>(&self, p: &mut U) -> Result<Self::Response> {
         self.tx(p)?;
-        Ok(self.rx(p)?)
+        self.rx(p)
     }
 }
 

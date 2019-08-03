@@ -17,7 +17,7 @@ impl TransmitCommandData for ProgrammingSizeInquiry {
 impl Receive for ProgrammingSizeInquiry {
     type Response = u16;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader =
             ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x37));
 
@@ -28,7 +28,7 @@ impl Receive for ProgrammingSizeInquiry {
 
         let programming_size = u16::from_be_bytes(programming_size_bytes);
 
-        Ok(Ok(programming_size))
+        Ok(programming_size)
     }
 }
 
@@ -38,7 +38,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = ProgrammingSizeInquiry {};
         let command_bytes = [0x27];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -56,7 +56,7 @@ mod tests {
         let response_bytes = [0x37, 0x02, 0x12, 0x34, 0x81];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(0x1234));
         assert!(is_script_complete(&mut p));

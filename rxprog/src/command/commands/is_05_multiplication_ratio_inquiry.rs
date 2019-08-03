@@ -17,7 +17,7 @@ impl TransmitCommandData for MultiplicationRatioInquiry {
 impl Receive for MultiplicationRatioInquiry {
     type Response = Vec<Vec<MultiplicationRatio>>;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader =
             ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x32));
 
@@ -43,7 +43,7 @@ impl Receive for MultiplicationRatioInquiry {
             remaining_data = &remaining_data[(1 + multiplication_ratio_count)..];
         }
 
-        Ok(Ok(clock_types))
+        Ok(clock_types)
     }
 }
 
@@ -53,7 +53,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = MultiplicationRatioInquiry {};
         let command_bytes = [0x22];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -76,7 +76,7 @@ mod tests {
         ];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(
             response,

@@ -19,7 +19,7 @@ impl TransmitCommandData for SupportedDeviceInquiry {
 impl Receive for SupportedDeviceInquiry {
     type Response = Vec<SupportedDevice>;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader =
             ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x30));
 
@@ -48,7 +48,7 @@ impl Receive for SupportedDeviceInquiry {
             remaining_data = &remaining_data[(1 + character_count)..];
         }
 
-        Ok(Ok(devices))
+        Ok(devices)
     }
 }
 
@@ -58,7 +58,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = SupportedDeviceInquiry {};
         let command_bytes = [0x20];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -81,7 +81,7 @@ mod tests {
         ];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(
             response,

@@ -20,7 +20,7 @@ impl TransmitCommandData for BlockErasure {
 impl Receive for BlockErasure {
     type Response = ();
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> Result<Self::Response> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
@@ -29,15 +29,15 @@ impl Receive for BlockErasure {
 
         let response = reader.read_response()?;
 
-        Ok(match response {
+        match response {
             Ok(_) => Ok(()),
             Err(error_code) => Err(match error_code {
-                0x11 => CommandError::Checksum,
-                0x29 => CommandError::BlockNumber,
-                0x51 => CommandError::Erasure,
+                0x11 => CommandError::Checksum.into(),
+                0x29 => CommandError::BlockNumber.into(),
+                0x51 => CommandError::Erasure.into(),
                 _ => panic!("Unknown error code"),
             }),
-        })
+        }
     }
 }
 
@@ -47,7 +47,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_tx() -> io::Result<()> {
+    fn test_tx() -> Result<()> {
         let cmd = BlockErasure { block: 0x38 };
         let command_bytes = [0x58, 0x01, 0x38, 0x6F];
         let mut p = mock_io::Builder::new().write(&command_bytes).build();
@@ -65,7 +65,7 @@ mod tests {
         let response_bytes = [0x06];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
         assert_eq!(response, Ok(()));
         assert!(is_script_complete(&mut p));
@@ -77,9 +77,9 @@ mod tests {
         let response_bytes = [0xD8, 0x29];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
-        let response = cmd.rx(&mut p).unwrap();
+        let response = cmd.rx(&mut p);
 
-        assert_eq!(response, Err(CommandError::BlockNumber));
+        assert_eq!(response, Err(CommandError::BlockNumber.into()));
         assert!(is_script_complete(&mut p));
     }
 }
