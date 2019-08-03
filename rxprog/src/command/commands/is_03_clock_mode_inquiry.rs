@@ -1,5 +1,4 @@
 use super::command_impl_prelude::*;
-
 /// Request a list of supported clock modes
 #[derive(Debug)]
 pub struct ClockModeInquiry {}
@@ -21,9 +20,7 @@ impl Receive for ClockModeInquiry {
         let mut reader =
             ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x31));
 
-        let data = reader.read_response()?.data;
-
-        Ok(data.to_vec())
+        Ok(reader.read_response()?.data)
     }
 }
 

@@ -34,18 +34,18 @@ impl Receive for ProgrammingErasureStateTransition {
             ErrorFirstByte(0xC0),
         );
 
-        let response = reader.read_response()?;
-
-        match response {
-            Ok(SimpleResponse { first_byte }) => match first_byte {
-                0x26 => Ok(IDCodeProtectionStatus::Disabled),
-                0x16 => Ok(IDCodeProtectionStatus::Enabled),
+        reader
+            .read_response()?
+            .map(|SimpleResponse { first_byte }| match first_byte {
+                0x26 => IDCodeProtectionStatus::Disabled,
+                0x16 => IDCodeProtectionStatus::Enabled,
                 // TODO: Consider modifying ResponseReader so this can't happen
                 _ => panic!("Response with unknown first byte"),
-            },
-            Err(0x51) => Err(CommandError::ProgrammingErasureStateTransition.into()),
-            Err(_) => panic!("Error with unknown second byte"),
-        }
+            })
+            .map_err(|error_code| match error_code {
+                0x51 => CommandError::ProgrammingErasureStateTransition.into(),
+                _ => panic!("Error with unknown second byte"),
+            })
     }
 }
 

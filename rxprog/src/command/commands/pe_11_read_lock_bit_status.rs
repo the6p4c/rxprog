@@ -43,20 +43,18 @@ impl Receive for ReadLockBitStatus {
             ErrorFirstByte(0xF1),
         );
 
-        let response = reader.read_response()?;
-
-        match response {
-            Ok(SimpleResponse { first_byte }) => match first_byte {
-                0x00 => Ok(LockBitStatus::Locked),
-                0x40 => Ok(LockBitStatus::Unlocked),
+        reader
+            .read_response()?
+            .map(|SimpleResponse { first_byte }| match first_byte {
+                0x00 => LockBitStatus::Locked,
+                0x40 => LockBitStatus::Unlocked,
                 _ => panic!("Response with unknown first byte"),
-            },
-            Err(error_code) => Err(match error_code {
+            })
+            .map_err(|error_code| match error_code {
                 0x11 => CommandError::Checksum.into(),
                 0x2A => CommandError::Address.into(),
                 _ => panic!("Unknown error code"),
-            }),
-        }
+            })
     }
 }
 

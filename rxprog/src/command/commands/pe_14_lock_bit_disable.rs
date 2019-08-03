@@ -21,7 +21,7 @@ impl Receive for LockBitDisable {
         let mut reader =
             ResponseReader::<_, SimpleResponse, NoError>::new(p, ResponseFirstByte::Byte(0x06));
 
-        let _response = reader.read_response()?;
+        reader.read_response()?;
 
         Ok(())
     }

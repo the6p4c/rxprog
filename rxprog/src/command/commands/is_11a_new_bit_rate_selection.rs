@@ -39,19 +39,17 @@ impl Receive for NewBitRateSelection {
             ErrorFirstByte(0xBF),
         );
 
-        let response = reader.read_response()?;
-
-        match response {
-            Ok(_) => Ok(()),
-            Err(error_code) => match error_code {
-                0x11 => Err(CommandError::Checksum.into()),
-                0x24 => Err(CommandError::BitRateSelection.into()),
-                0x25 => Err(CommandError::InputFrequency.into()),
-                0x26 => Err(CommandError::MultiplicationRatio.into()),
-                0x27 => Err(CommandError::OperatingFrequency.into()),
+        reader
+            .read_response()?
+            .map(|_| ())
+            .map_err(|error_code| match error_code {
+                0x11 => CommandError::Checksum.into(),
+                0x24 => CommandError::BitRateSelection.into(),
+                0x25 => CommandError::InputFrequency.into(),
+                0x26 => CommandError::MultiplicationRatio.into(),
+                0x27 => CommandError::OperatingFrequency.into(),
                 _ => panic!("Unknown error code"),
-            },
-        }
+            })
     }
 }
 

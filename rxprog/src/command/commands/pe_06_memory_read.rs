@@ -40,17 +40,15 @@ impl Receive for MemoryRead {
             ErrorFirstByte(0xD2),
         );
 
-        let response = reader.read_response()?;
-
-        match response {
-            Ok(SizedResponse { data, .. }) => Ok(data),
-            Err(error_code) => Err(match error_code {
+        reader
+            .read_response()?
+            .map(|SizedResponse { data, .. }| data)
+            .map_err(|error_code| match error_code {
                 0x11 => CommandError::Checksum.into(),
                 0x2A => CommandError::Address.into(),
                 0x2B => CommandError::DataSize.into(),
                 _ => panic!("Unknown error code"),
-            }),
-        }
+            })
     }
 }
 

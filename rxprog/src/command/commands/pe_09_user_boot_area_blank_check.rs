@@ -26,15 +26,11 @@ impl Receive for UserBootAreaBlankCheck {
 
         let response = reader.read_response()?;
 
-        let state = match response {
+        Ok(match response {
             Ok(_) => ErasureState::Blank,
-            Err(error_code) => match error_code {
-                0x52 => ErasureState::NotBlank,
-                _ => panic!("Unknown error code"),
-            },
-        };
-
-        Ok(state)
+            Err(0x52) => ErasureState::NotBlank,
+            _ => panic!("Unknown response"),
+        })
     }
 }
 
