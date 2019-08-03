@@ -32,7 +32,16 @@ impl Receive for ClockModeSelection {
             .map(|_| ())
             .map_err(|error_code| match error_code {
                 0x11 => CommandError::Checksum.into(),
-                0x21 => CommandError::ClockMode.into(),
+                // From "RX210 Group User's Manual: Hardware", pg. 1416
+                // (4) Clock Mode Selection
+                //     ...
+                //     Error (1 byte): Error code
+                //                     ...
+                //                     21h: Clock mode error
+                //
+                // That's wrong. It's 0x22 - which is (at least sort of
+                // confirmed) by the table of error codes on pg. 1423.
+                0x22 => CommandError::ClockMode.into(),
                 _ => panic!("Unknown error code"),
             })
     }
@@ -71,7 +80,7 @@ mod tests {
     #[test]
     fn test_rx_fail() {
         let cmd = ClockModeSelection { mode: 0xAB };
-        let response_bytes = [0x91, 0x21];
+        let response_bytes = [0x91, 0x22];
         let mut p = mock_io::Builder::new().read(&response_bytes).build();
 
         let response = cmd.rx(&mut p);
