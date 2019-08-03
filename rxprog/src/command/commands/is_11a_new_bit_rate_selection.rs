@@ -29,26 +29,10 @@ impl TransmitCommandData for NewBitRateSelection {
     }
 }
 
-/// Error preventing successful bit rate selection
-#[derive(Debug, PartialEq)]
-pub enum NewBitRateSelectionError {
-    /// Command checksum validation failed
-    Checksum,
-    /// Bit rate could not be selected within an acceptable margin of error
-    BitRateSelection,
-    /// Input frequency out of bounds
-    InputFrequency,
-    /// Multiplication ratio not supported by clock mode
-    MultiplicationRatio,
-    /// Operating frequency after scaling not supported
-    OperatingFrequency,
-}
-
 impl Receive for NewBitRateSelection {
     type Response = ();
-    type Error = NewBitRateSelectionError;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
@@ -60,11 +44,11 @@ impl Receive for NewBitRateSelection {
         Ok(match response {
             Ok(_) => Ok(()),
             Err(error_code) => match error_code {
-                0x11 => Err(NewBitRateSelectionError::Checksum),
-                0x24 => Err(NewBitRateSelectionError::BitRateSelection),
-                0x25 => Err(NewBitRateSelectionError::InputFrequency),
-                0x26 => Err(NewBitRateSelectionError::MultiplicationRatio),
-                0x27 => Err(NewBitRateSelectionError::OperatingFrequency),
+                0x11 => Err(CommandError::Checksum),
+                0x24 => Err(CommandError::BitRateSelection),
+                0x25 => Err(CommandError::InputFrequency),
+                0x26 => Err(CommandError::MultiplicationRatio),
+                0x27 => Err(CommandError::OperatingFrequency),
                 _ => panic!("Unknown error code"),
             },
         })
@@ -130,7 +114,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(response, Err(NewBitRateSelectionError::BitRateSelection));
+        assert_eq!(response, Err(CommandError::BitRateSelection));
         assert!(is_script_complete(&mut p));
     }
 }

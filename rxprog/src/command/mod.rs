@@ -9,12 +9,11 @@ mod reader;
 #[cfg(test)]
 mod test_util;
 
-pub use command::Command;
+pub use command::{Command, CommandError};
 
 /// Prelude module providing basic data types required to implement a command.
 /// Intended to be glob imported.
 mod command_impl_prelude {
-    pub use std::convert::Infallible;
     pub use std::io;
 
     pub use super::command::*;

@@ -16,9 +16,8 @@ impl TransmitCommandData for UserBootAreaProgrammingSelection {
 
 impl Receive for UserBootAreaProgrammingSelection {
     type Response = ();
-    type Error = Infallible;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
         let mut reader =
             ResponseReader::<_, SimpleResponse, NoError>::new(p, ResponseFirstByte::Byte(0x06));
 

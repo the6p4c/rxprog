@@ -17,22 +17,10 @@ impl TransmitCommandData for BlockErasure {
     }
 }
 
-/// Error preventing successful block erasure
-#[derive(Debug, PartialEq)]
-pub enum BlockErasureError {
-    /// Command checksum validation failed
-    Checksum,
-    /// Invalid block number
-    BlockNumber,
-    /// Erasure could not be completed
-    Erasure,
-}
-
 impl Receive for BlockErasure {
     type Response = ();
-    type Error = BlockErasureError;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
@@ -44,9 +32,9 @@ impl Receive for BlockErasure {
         Ok(match response {
             Ok(_) => Ok(()),
             Err(error_code) => Err(match error_code {
-                0x11 => BlockErasureError::Checksum,
-                0x29 => BlockErasureError::BlockNumber,
-                0x51 => BlockErasureError::Erasure,
+                0x11 => CommandError::Checksum,
+                0x29 => CommandError::BlockNumber,
+                0x51 => CommandError::Erasure,
                 _ => panic!("Unknown error code"),
             }),
         })
@@ -91,7 +79,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(response, Err(BlockErasureError::BlockNumber));
+        assert_eq!(response, Err(CommandError::BlockNumber));
         assert!(is_script_complete(&mut p));
     }
 }

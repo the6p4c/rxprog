@@ -126,9 +126,8 @@ pub struct BootProgramStatusInquiryResponse {
 
 impl Receive for BootProgramStatusInquiry {
     type Response = BootProgramStatusInquiryResponse;
-    type Error = Infallible;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
         let mut reader =
             ResponseReader::<_, SizedResponse<u8>, NoError>::new(p, ResponseFirstByte::Byte(0x5F));
 

@@ -30,22 +30,10 @@ impl TransmitCommandData for MemoryRead {
     }
 }
 
-/// Error preventing a successful memory read
-#[derive(Debug, PartialEq)]
-pub enum MemoryReadError {
-    /// Command checksum validation failed
-    Checksum,
-    /// Invalid address (not in selected area, or invalid area)
-    Address,
-    /// Invalid data size (zero, too large, or calculated end out of bounds)
-    DataSize,
-}
-
 impl Receive for MemoryRead {
     type Response = Vec<u8>;
-    type Error = MemoryReadError;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
         let mut reader = ResponseReader::<_, SizedResponse<u32>, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x52),
@@ -57,9 +45,9 @@ impl Receive for MemoryRead {
         Ok(match response {
             Ok(SizedResponse { data, .. }) => Ok(data),
             Err(error_code) => Err(match error_code {
-                0x11 => MemoryReadError::Checksum,
-                0x2A => MemoryReadError::Address,
-                0x2B => MemoryReadError::DataSize,
+                0x11 => CommandError::Checksum,
+                0x2A => CommandError::Address,
+                0x2B => CommandError::DataSize,
                 _ => panic!("Unknown error code"),
             }),
         })
@@ -126,7 +114,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(response, Err(MemoryReadError::Address));
+        assert_eq!(response, Err(CommandError::Address));
         assert!(is_script_complete(&mut p));
     }
 }

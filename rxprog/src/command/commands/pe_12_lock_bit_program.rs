@@ -33,22 +33,10 @@ impl TransmitCommandData for LockBitProgram {
     }
 }
 
-/// Error preventing lock bit programming
-#[derive(Debug, PartialEq)]
-pub enum LockBitProgramError {
-    /// Command checksum validation failed
-    Checksum,
-    /// Address not in specified area
-    Address,
-    /// Failed to program lock bit
-    Programming,
-}
-
 impl Receive for LockBitProgram {
     type Response = ();
-    type Error = LockBitProgramError;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
@@ -60,9 +48,9 @@ impl Receive for LockBitProgram {
         Ok(match response {
             Ok(_) => Ok(()),
             Err(error_code) => Err(match error_code {
-                0x11 => LockBitProgramError::Checksum,
-                0x2A => LockBitProgramError::Address,
-                0x53 => LockBitProgramError::Programming,
+                0x11 => CommandError::Checksum,
+                0x2A => CommandError::Address,
+                0x53 => CommandError::Programming,
                 _ => panic!("Unknown error code"),
             }),
         })
@@ -122,7 +110,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(response, Err(LockBitProgramError::Address));
+        assert_eq!(response, Err(CommandError::Address));
         assert!(is_script_complete(&mut p));
     }
 }

@@ -26,9 +26,8 @@ impl TransmitCommandData for ProgrammingErasureStateTransition {
 
 impl Receive for ProgrammingErasureStateTransition {
     type Response = IDCodeProtectionStatus;
-    type Error = ();
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::OneByteOf(vec![0x26, 0x16]),
@@ -44,7 +43,7 @@ impl Receive for ProgrammingErasureStateTransition {
                 // TODO: Consider modifying ResponseReader so this can't happen
                 _ => panic!("Response with unknown first byte"),
             },
-            Err(0x51) => Err(()),
+            Err(0x51) => Err(CommandError::ProgrammingErasureStateTransition),
             Err(_) => panic!("Error with unknown second byte"),
         })
     }
@@ -100,7 +99,10 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(response, Err(()));
+        assert_eq!(
+            response,
+            Err(CommandError::ProgrammingErasureStateTransition)
+        );
         assert!(is_script_complete(&mut p));
     }
 }

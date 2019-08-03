@@ -19,20 +19,10 @@ impl TransmitCommandData for DeviceSelection {
     }
 }
 
-/// Error preventing successful device selection
-#[derive(Debug, PartialEq)]
-pub enum DeviceSelectionError {
-    /// Command checksum validation failed
-    Checksum,
-    /// Invalid device code
-    DeviceCode,
-}
-
 impl Receive for DeviceSelection {
     type Response = ();
-    type Error = DeviceSelectionError;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
@@ -44,8 +34,8 @@ impl Receive for DeviceSelection {
         Ok(match response {
             Ok(_) => Ok(()),
             Err(error_code) => Err(match error_code {
-                0x11 => DeviceSelectionError::Checksum,
-                0x21 => DeviceSelectionError::DeviceCode,
+                0x11 => CommandError::Checksum,
+                0x21 => CommandError::DeviceCode,
                 _ => panic!("Unknown error code"),
             }),
         })
@@ -96,7 +86,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(response, Err(DeviceSelectionError::DeviceCode));
+        assert_eq!(response, Err(CommandError::DeviceCode));
         assert!(is_script_complete(&mut p));
     }
 }

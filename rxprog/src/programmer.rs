@@ -3,7 +3,7 @@ use std::ops::RangeInclusive;
 use std::thread;
 use std::time;
 
-use crate::command::{self, Command};
+use crate::command::{self, Command, CommandError};
 use crate::target::{OperatingMode, Target};
 
 /// Error encountered when attempting to make an initial connection to a device
@@ -96,9 +96,7 @@ impl ProgrammerConnected {
     pub fn select_device(
         mut self,
         device_code: &String,
-    ) -> io::Result<
-        Result<ProgrammerConnectedDeviceSelected, command::commands::DeviceSelectionError>,
-    > {
+    ) -> io::Result<Result<ProgrammerConnectedDeviceSelected, CommandError>> {
         let cmd = command::commands::DeviceSelection {
             device_code: device_code.clone(),
         };
@@ -131,9 +129,7 @@ impl ProgrammerConnectedDeviceSelected {
     pub fn select_clock_mode(
         mut self,
         clock_mode: u8,
-    ) -> io::Result<
-        Result<ProgrammerConnectedClockModeSelected, command::commands::ClockModeSelectionError>,
-    > {
+    ) -> io::Result<Result<ProgrammerConnectedClockModeSelected, CommandError>> {
         let cmd = command::commands::ClockModeSelection { mode: clock_mode };
         let response = cmd.execute(&mut self.target)?;
 
@@ -176,9 +172,7 @@ impl ProgrammerConnectedClockModeSelected {
         bit_rate: u16,
         input_frequency: u16,
         multiplication_ratios: Vec<command::data::MultiplicationRatio>,
-    ) -> io::Result<
-        Result<ProgrammerConnectedNewBitRateSelected, command::commands::NewBitRateSelectionError>,
-    > {
+    ) -> io::Result<Result<ProgrammerConnectedNewBitRateSelected, CommandError>> {
         let cmd = command::commands::NewBitRateSelection {
             bit_rate: bit_rate,
             input_frequency: input_frequency,
@@ -275,7 +269,7 @@ impl ProgrammerConnectedProgrammingErasureState {
         area: command::data::MemoryArea,
         start_address: u32,
         size: u32,
-    ) -> io::Result<Result<Vec<u8>, command::commands::MemoryReadError>> {
+    ) -> io::Result<Result<Vec<u8>, CommandError>> {
         let cmd = command::commands::MemoryRead {
             area,
             start_address,
@@ -297,7 +291,7 @@ impl ProgrammerConnectedWaitingForData {
         &mut self,
         address: u32,
         data: [u8; 256],
-    ) -> io::Result<Result<(), command::commands::X256ByteProgrammingError>> {
+    ) -> io::Result<Result<(), CommandError>> {
         let cmd = command::commands::X256ByteProgramming {
             address: address,
             data: data,

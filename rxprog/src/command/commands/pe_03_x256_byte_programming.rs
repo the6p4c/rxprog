@@ -26,22 +26,10 @@ impl TransmitCommandData for X256ByteProgramming {
     }
 }
 
-/// Error preventing successful programming
-#[derive(Debug, PartialEq)]
-pub enum X256ByteProgrammingError {
-    /// Command checksum validation failed
-    Checksum,
-    /// Address not in selected area
-    Address,
-    /// Programming could not be completed
-    Programming,
-}
-
 impl Receive for X256ByteProgramming {
     type Response = ();
-    type Error = X256ByteProgrammingError;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
@@ -53,9 +41,9 @@ impl Receive for X256ByteProgramming {
         Ok(match response {
             Ok(_) => Ok(()),
             Err(error_code) => Err(match error_code {
-                0x11 => X256ByteProgrammingError::Checksum,
-                0x2A => X256ByteProgrammingError::Address,
-                0x53 => X256ByteProgrammingError::Programming,
+                0x11 => CommandError::Checksum,
+                0x2A => CommandError::Address,
+                0x53 => CommandError::Programming,
                 _ => panic!("Unknown error code"),
             }),
         })
@@ -157,7 +145,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(response, Err(X256ByteProgrammingError::Address));
+        assert_eq!(response, Err(CommandError::Address));
         assert!(is_script_complete(&mut p));
     }
 }

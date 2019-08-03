@@ -17,20 +17,10 @@ impl TransmitCommandData for ClockModeSelection {
     }
 }
 
-/// Error preventing successful clock mode selection
-#[derive(Debug, PartialEq)]
-pub enum ClockModeSelectionError {
-    /// Command checksum validation failed
-    Checksum,
-    /// Invalid clock mode
-    ClockMode,
-}
-
 impl Receive for ClockModeSelection {
     type Response = ();
-    type Error = ClockModeSelectionError;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::Byte(0x06),
@@ -41,11 +31,13 @@ impl Receive for ClockModeSelection {
 
         Ok(match response {
             Ok(_) => Ok(()),
-            Err(error_code) => Err(match error_code {
-                0x11 => ClockModeSelectionError::Checksum,
-                0x21 => ClockModeSelectionError::ClockMode,
-                _ => panic!("Unknown error code"),
-            }),
+            Err(error_code) => Err(
+                match error_code {
+                    0x11 => CommandError::Checksum,
+                    0x21 => CommandError::ClockMode,
+                    _ => panic!("Unknown error code"),
+                },
+            ),
         })
     }
 }
@@ -88,7 +80,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(response, Err(ClockModeSelectionError::ClockMode));
+        assert_eq!(response, Err(CommandError::ClockMode));
         assert!(is_script_complete(&mut p));
     }
 }

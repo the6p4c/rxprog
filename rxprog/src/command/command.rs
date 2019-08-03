@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io;
 use std::num::Wrapping;
 
@@ -5,14 +6,12 @@ use std::num::Wrapping;
 pub trait Command {
     /// Result of a successful command execution
     type Response;
-    /// Result of an unsuccessful command execution
-    type Error;
 
     /// Executes the command on a device
     fn execute<T: io::Read + io::Write>(
         &self,
         p: &mut T,
-    ) -> io::Result<Result<Self::Response, Self::Error>>;
+    ) -> io::Result<Result<Self::Response, CommandError>>;
 }
 
 pub trait Transmit {
@@ -64,20 +63,80 @@ impl<T: TransmitCommandData> Transmit for T {
 
 pub trait Receive {
     type Response;
-    type Error;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>>;
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>>;
 }
 
 impl<T: Transmit + Receive> Command for T {
     type Response = T::Response;
-    type Error = T::Error;
 
     fn execute<U: io::Read + io::Write>(
         &self,
         p: &mut U,
-    ) -> io::Result<Result<Self::Response, Self::Error>> {
+    ) -> io::Result<Result<Self::Response, CommandError>> {
         self.tx(p)?;
         Ok(self.rx(p)?)
+    }
+}
+
+/// An error returned by a target in response to a command
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum CommandError {
+    /// Invalid address or area
+    Address,
+    /// Requested bit rate could not be selected within an acceptable margin of
+    /// error
+    BitRateSelection,
+    /// Invalid block number
+    BlockNumber,
+    /// Checksum mismatch
+    Checksum,
+    /// Invalid clock mode
+    ClockMode,
+    /// Invalid data size (zero, too large, or calculated end address out of
+    /// bounds)
+    DataSize,
+    /// Invalid device code
+    DeviceCode,
+    /// Error occurred during erasure (target or user initiated)
+    Erasure,
+    /// Supplied ID code did not match
+    IDCodeMismatch,
+    /// Input frequency out of range for selected clock mode
+    InputFrequency,
+    /// Multiplication ratio invalid for selected clock mode
+    MultiplicationRatio,
+    /// Calculated operating frequency out of range for clock
+    OperatingFrequency,
+    /// Error occurred during programming
+    Programming,
+    /// Failed to transition into programming/erasure state
+    ProgrammingErasureStateTransition,
+}
+
+impl fmt::Display for CommandError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                CommandError::Address => "invalid address/area",
+                CommandError::BitRateSelection => "bit rate selection error too high",
+                CommandError::BlockNumber => "invalid block number",
+                CommandError::Checksum => "checksum mismatch",
+                CommandError::ClockMode => "invalid clock mode",
+                CommandError::DataSize => "invalid data size",
+                CommandError::DeviceCode => "invalid device code",
+                CommandError::Erasure => "erasure error",
+                CommandError::IDCodeMismatch => "ID code mismatch",
+                CommandError::InputFrequency => "input frequency out of range",
+                CommandError::MultiplicationRatio => "invalid multiplication ratio",
+                CommandError::OperatingFrequency => "calculated operating frequency out of range",
+                CommandError::Programming => "programming error",
+                CommandError::ProgrammingErasureStateTransition => {
+                    "failed to transition into programming/erasure state"
+                }
+            }
+        )
     }
 }

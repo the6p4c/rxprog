@@ -33,20 +33,10 @@ impl TransmitCommandData for ReadLockBitStatus {
     }
 }
 
-/// Error preventing lock bit status reading
-#[derive(Debug, PartialEq)]
-pub enum ReadLockBitStatusError {
-    /// Command checksum validation failed
-    Checksum,
-    /// Address not in specified area
-    Address,
-}
-
 impl Receive for ReadLockBitStatus {
     type Response = LockBitStatus;
-    type Error = ReadLockBitStatusError;
 
-    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, Self::Error>> {
+    fn rx<T: io::Read>(&self, p: &mut T) -> io::Result<Result<Self::Response, CommandError>> {
         let mut reader = ResponseReader::<_, SimpleResponse, WithError>::new(
             p,
             ResponseFirstByte::OneByteOf(vec![0x00, 0x40]),
@@ -62,8 +52,8 @@ impl Receive for ReadLockBitStatus {
                 _ => panic!("Response with unknown first byte"),
             },
             Err(error_code) => Err(match error_code {
-                0x11 => ReadLockBitStatusError::Checksum,
-                0x2A => ReadLockBitStatusError::Address,
+                0x11 => CommandError::Checksum,
+                0x2A => CommandError::Address,
                 _ => panic!("Unknown error code"),
             }),
         })
@@ -140,7 +130,7 @@ mod tests {
 
         let response = cmd.rx(&mut p).unwrap();
 
-        assert_eq!(response, Err(ReadLockBitStatusError::Address));
+        assert_eq!(response, Err(CommandError::Address));
         assert!(is_script_complete(&mut p));
     }
 }
