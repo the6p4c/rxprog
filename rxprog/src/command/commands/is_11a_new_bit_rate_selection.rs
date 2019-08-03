@@ -1,8 +1,4 @@
-use std::io;
-
-use super::command::*;
-use super::data::MultiplicationRatio;
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 /// Selects a new bit rate for the programmer connection. Must be followed by a
 /// `NewBitRateSelectionConfirmation`.

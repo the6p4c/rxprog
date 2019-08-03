@@ -1,7 +1,4 @@
-use std::io;
-
-use super::command::*;
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 /// Transitions to the programming/erasure command wait. If ID code protection is enabled, the
 /// device waits for a valid ID code before transitioning.

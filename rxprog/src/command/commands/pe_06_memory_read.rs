@@ -1,8 +1,4 @@
-use std::io;
-
-use super::command::*;
-use super::data::MemoryArea;
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 /// Reads a number of bytes from a specified memory location
 #[derive(Debug)]

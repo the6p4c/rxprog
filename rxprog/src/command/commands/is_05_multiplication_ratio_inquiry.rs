@@ -1,9 +1,4 @@
-use std::convert::Infallible;
-use std::io;
-
-use super::command::*;
-use super::data::MultiplicationRatio;
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 /// Request a list of supported multiplication ratios for each clock
 #[derive(Debug)]

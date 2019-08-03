@@ -1,9 +1,6 @@
-use std::convert::Infallible;
-use std::io;
 use std::ops::RangeInclusive;
 
-use super::command::*;
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 /// Requests information about the device's user areas
 #[derive(Debug)]

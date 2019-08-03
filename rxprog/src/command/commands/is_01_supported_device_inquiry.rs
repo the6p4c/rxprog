@@ -1,10 +1,6 @@
-use std::convert::Infallible;
-use std::io;
 use std::str;
 
-use super::command::*;
-use super::data::SupportedDevice;
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 /// Request a list of devices supported by the boot program
 #[derive(Debug)]

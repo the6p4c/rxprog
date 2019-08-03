@@ -1,8 +1,4 @@
-use std::convert::Infallible;
-use std::io;
-
-use super::command::*;
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 /// Selectes the user/user data area for programming, transitioning into the programming wait
 #[derive(Debug)]

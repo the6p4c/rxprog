@@ -1,8 +1,4 @@
-use std::io;
-
-use super::command::*;
-use super::data::{LockBitStatus, MemoryArea};
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 /// Requests the state of the lock bit for a specified memory region
 #[derive(Debug)]

@@ -1,8 +1,4 @@
-use std::convert::Infallible;
-use std::io;
-
-use super::command::*;
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 /// Requests a 32-bit checksum of the user boot area
 #[derive(Debug)]

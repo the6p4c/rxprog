@@ -1,8 +1,4 @@
-use std::io;
-
-use super::command::*;
-use super::data::MemoryArea;
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 /// Programs the lock bit of a memory region in the specified area
 #[derive(Debug)]

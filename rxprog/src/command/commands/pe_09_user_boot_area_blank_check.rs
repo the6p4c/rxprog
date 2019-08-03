@@ -1,9 +1,4 @@
-use std::convert::Infallible;
-use std::io;
-
-use super::command::*;
-use super::data::ErasureState;
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 /// Checks if the user boot area is unprogrammed
 #[derive(Debug)]

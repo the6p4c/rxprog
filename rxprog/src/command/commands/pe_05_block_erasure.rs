@@ -1,7 +1,4 @@
-use std::io;
-
-use super::command::*;
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 /// Erases a block
 #[derive(Debug)]

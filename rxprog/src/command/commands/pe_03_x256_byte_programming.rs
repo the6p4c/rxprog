@@ -1,7 +1,4 @@
-use std::io;
-
-use super::command::*;
-use super::reader::*;
+use super::command_impl_prelude::*;
 
 // Can't derive Debug, because there's no Debug impl for a length 256 array
 /// Programs 256 bytes at the provided address in the selected area
