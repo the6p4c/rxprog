@@ -32,7 +32,7 @@ impl Programmer {
     pub fn connect(mut self) -> io::Result<Result<ProgrammerConnected, ConnectError>> {
         self.target.reset_into(OperatingMode::Boot);
 
-        self.target.clear_buffers();
+        self.target.clear_buffers()?;
 
         for baud_rate in &[9600, 4800, 2400, 1200, 0] {
             if *baud_rate == 0 {
