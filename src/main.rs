@@ -22,6 +22,8 @@ use serialport::prelude::*;
 use image::Image;
 
 fn print_table(headings: Vec<&str>, data: Vec<Vec<&str>>) {
+    const COLUMN_SEPARATOR: &str = "    ";
+
     for row in &data {
         assert_eq!(
             row.len(),
@@ -40,15 +42,19 @@ fn print_table(headings: Vec<&str>, data: Vec<Vec<&str>>) {
             .collect::<Vec<_>>()
     });
 
+    let total_column_width = col_lengths.iter().sum::<usize>();
+    let total_separator_width = (col_lengths.len() - 1) * COLUMN_SEPARATOR.len();
+    let total_width = total_column_width + total_separator_width;
+
     let all_rows = iter::once(&headings).chain(data.iter());
     for (i, row) in all_rows.enumerate() {
         for (value, col_length) in row.iter().zip(&col_lengths) {
-            print!("{: <1$}    ", value, col_length);
+            print!("{0: <1$}{2}", value, col_length, COLUMN_SEPARATOR);
         }
         println!();
 
         if i == 0 {
-            println!("{}", "=".repeat(col_lengths.iter().sum()));
+            println!("{}", "=".repeat(total_width));
         }
     }
 }
