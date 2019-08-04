@@ -61,6 +61,15 @@ impl From<MultiplicationRatio> for u8 {
     }
 }
 
+/// Availability state of a data area
+#[derive(Debug, PartialEq)]
+pub enum DataAreaAvailability {
+    /// The device supports a data area
+    Available,
+    /// The device does not support a data area
+    Unavailable,
+}
+
 /// A distinct region of memory
 #[derive(Debug)]
 pub enum MemoryArea {

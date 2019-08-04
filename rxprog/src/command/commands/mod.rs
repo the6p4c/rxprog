@@ -14,6 +14,8 @@ mod is_11a_new_bit_rate_selection;
 mod is_11b_new_bit_rate_selection_confirmation;
 mod is_12_programming_erasure_state_transition;
 mod is_13_boot_program_status_inquiry;
+mod isd_01_data_area_inquiry;
+mod isd_02_data_area_information_inquiry;
 mod pe_01_user_boot_area_programming_selection;
 mod pe_02_user_data_area_programming_selection;
 mod pe_03_x256_byte_programming;
@@ -28,6 +30,8 @@ mod pe_11_read_lock_bit_status;
 mod pe_12_lock_bit_program;
 mod pe_13_lock_bit_enable;
 mod pe_14_lock_bit_disable;
+mod ped_01_data_area_checksum;
+mod ped_02_data_area_blank_check;
 
 pub use is_01_supported_device_inquiry::SupportedDeviceInquiry;
 pub use is_02_device_selection::DeviceSelection;
@@ -47,6 +51,8 @@ pub use is_12_programming_erasure_state_transition::{
 pub use is_13_boot_program_status_inquiry::{
     BootProgramError, BootProgramStatus, BootProgramStatusInquiry, BootProgramStatusInquiryResponse,
 };
+pub use isd_01_data_area_inquiry::DataAreaInquiry;
+pub use isd_02_data_area_information_inquiry::DataAreaInformationInquiry;
 pub use pe_01_user_boot_area_programming_selection::UserBootAreaProgrammingSelection;
 pub use pe_02_user_data_area_programming_selection::UserDataAreaProgrammingSelection;
 pub use pe_03_x256_byte_programming::X256ByteProgramming;
@@ -61,3 +67,5 @@ pub use pe_11_read_lock_bit_status::ReadLockBitStatus;
 pub use pe_12_lock_bit_program::LockBitProgram;
 pub use pe_13_lock_bit_enable::LockBitEnable;
 pub use pe_14_lock_bit_disable::LockBitDisable;
+pub use ped_01_data_area_checksum::DataAreaChecksum;
+pub use ped_02_data_area_blank_check::DataAreaBlankCheck;
