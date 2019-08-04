@@ -252,6 +252,18 @@ impl ProgrammerConnectedProgrammingErasureState {
         };
         cmd.execute(&mut self.target)
     }
+
+    /// Requests the checksum of the user boot area
+    pub fn user_boot_area_checksum(&mut self) -> Result<u32> {
+        let cmd = command::commands::UserBootAreaChecksum {};
+        cmd.execute(&mut self.target)
+    }
+
+    /// Requests the checksum of the user area
+    pub fn user_area_checksum(&mut self) -> Result<u32> {
+        let cmd = command::commands::UserAreaChecksum {};
+        cmd.execute(&mut self.target)
+    }
 }
 
 /// A programmer connected to a device, waiting for data to be programmed into the selected area

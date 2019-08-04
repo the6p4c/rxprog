@@ -164,6 +164,12 @@ fn list_operating_frequencies(
 fn main() -> Result<(), Box<dyn error::Error>> {
     let matches = App::new("rxprog-cli")
         .arg(
+            Arg::with_name("show_checksums")
+                .long("show-checksums")
+                .short("c")
+                .help("Print the checksums of the user boot and user areas after programming/verifying")
+        )
+        .arg(
             Arg::with_name("connection_string")
                 .index(1)
                 .help("A semicolon (;) separated list of key=value pairs specifiying the required configuration options to connect to a target"),
@@ -344,6 +350,15 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         } else {
             println!("Falied to verify");
         }
+    }
+
+    if matches.is_present("show_checksums") {
+        let uba_checksum = prog.user_boot_area_checksum()?;
+        let ua_checksum = prog.user_area_checksum()?;
+
+        println!();
+        println!("User boot area checksum: {:#010X}", uba_checksum);
+        println!("User area checksum: {:#010X}", ua_checksum);
     }
 
     Ok(())
