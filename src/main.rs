@@ -16,7 +16,7 @@ use clap::{App, Arg};
 use rxprog::command::data::{MemoryArea, MultiplicationRatio};
 use rxprog::programmer::{
     Programmer, ProgrammerConnected, ProgrammerConnectedClockModeSelected,
-    ProgrammerConnectedDeviceSelected, ProgrammerConnectedNewBitRateSelected,
+    ProgrammerConnectedDeviceSelected,
 };
 use rxprog::target::SerialTarget;
 use serialport::prelude::*;
@@ -161,54 +161,6 @@ fn list_operating_frequencies(
     Ok(())
 }
 
-fn list_areas_and_blocks(prog: &mut ProgrammerConnectedNewBitRateSelected) -> rxprog::Result<()> {
-    println!("User boot area blocks");
-    let rows = prog
-        .user_boot_area()?
-        .iter()
-        .map(|r| vec![format!("0x{:x}", r.start()), format!("0x{:x}", r.end())])
-        .collect::<Vec<_>>();
-
-    print_table(
-        vec!["Start address", "End address"],
-        rows.iter()
-            .map(|row| row.iter().map(|s| s.as_str()).collect::<Vec<&str>>())
-            .collect(),
-    );
-
-    println!();
-    println!("User area blocks");
-    let rows = prog
-        .user_area()?
-        .iter()
-        .map(|r| vec![format!("0x{:x}", r.start()), format!("0x{:x}", r.end())])
-        .collect::<Vec<_>>();
-
-    print_table(
-        vec!["Start address", "End address"],
-        rows.iter()
-            .map(|row| row.iter().map(|s| s.as_str()).collect::<Vec<&str>>())
-            .collect(),
-    );
-
-    println!();
-    println!("Erasure blocks");
-    let rows = prog
-        .erasure_block()?
-        .iter()
-        .map(|r| vec![format!("0x{:x}", r.start()), format!("0x{:x}", r.end())])
-        .collect::<Vec<_>>();
-
-    print_table(
-        vec!["Start address", "End address"],
-        rows.iter()
-            .map(|row| row.iter().map(|s| s.as_str()).collect::<Vec<&str>>())
-            .collect(),
-    );
-
-    Ok(())
-}
-
 fn main() -> Result<(), Box<dyn error::Error>> {
     let matches = App::new("rxprog-cli")
         .arg(
@@ -234,13 +186,16 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     let port = connection_string.get("p");
     if port.is_none() {
+        println!("No port specified in connection string. Listing availiable serial ports:");
         list_ports();
 
         println!();
-        println!("Hint: select a port with p=<port name> in the connection string");
+        println!("Hint: select a port with p=<port name>");
         return Ok(());
     }
     let port = port.unwrap();
+
+    println!("Connecting to target on {}", port);
 
     let p = serialport::open_with_settings(
         port,
@@ -256,12 +211,18 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let target = SerialTarget::new(p);
     let mut prog = Programmer::new(Box::new(target)).connect()?;
 
+    println!("Initial connection succeeded");
+
     let device = connection_string.get("d");
     if device.is_none() {
+        println!();
+        println!(
+            "No device specified in connection string. Querying target for supported devices:"
+        );
         list_devices(&mut prog)?;
 
         println!();
-        println!("Hint: select a device with d=<device code> in the connection string");
+        println!("Hint: select a device with d=<device code>");
         return Ok(());
     }
     let device = device.unwrap();
@@ -270,10 +231,12 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     let clock_mode = connection_string.get("cm");
     if clock_mode.is_none() {
+        println!();
+        println!("No clock mode specified in connection string. Querying target for supported clock modes:");
         list_clock_modes(&mut prog)?;
 
         println!();
-        println!("Hint: select a clock mode with cm=<clock mode> in the connection string");
+        println!("Hint: select a clock mode with cm=<clock mode>");
         return Ok(());
     }
     let clock_mode = clock_mode
@@ -287,11 +250,13 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let input_frequency = connection_string.get("if");
     let multiplication_ratios = connection_string.get("mr");
     if bit_rate.is_none() || input_frequency.is_none() || multiplication_ratios.is_none() {
+        println!();
+        println!("No input frequency, multiplication ratio and/or bit rate specified in connection string. Querying target for supported multiplication ratios and operating frequency ranges:");
         list_multiplication_ratios(&mut prog)?;
         list_operating_frequencies(&mut prog)?;
 
         println!();
-        println!("Hint: select an input frequency, multiplication ratio and bit rate with if=<input frequency>;mr=<ratio 1>,<ratio 2>,...;br=<bit rate> in the connection string");
+        println!("Hint: select an input frequency, multiplication ratio and bit rate with if=<input frequency>;mr=<ratio 1>,<ratio 2>,...;br=<bit rate>");
         return Ok(());
     }
     let bit_rate = bit_rate.unwrap().parse::<u16>().expect("Invalid bit rate");
@@ -317,14 +282,11 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     let mut prog = prog.set_new_bit_rate(bit_rate, input_frequency, multiplication_ratios)?;
 
-    println!("Connected with new bit rate set!");
-
     let image_path = matches.value_of("image_path");
     if image_path.is_none() {
-        list_areas_and_blocks(&mut prog)?;
-
         println!();
         println!("Hint: specify an image to program the device");
+        println!("Nothing to do");
         return Ok(());
     }
     let image_path = image_path.unwrap();
@@ -346,6 +308,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     }
 
     let prog = prog.programming_erasure_state_transition()?;
+
+    println!("Transitioned to programming/erasure state successfully");
+    println!();
+
     let mut prog = prog.program_user_or_data_area()?;
     for block in image.programmable_blocks(256) {
         println!(
