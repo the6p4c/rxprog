@@ -2,6 +2,7 @@ extern crate clap;
 extern crate rxprog;
 extern crate serialport;
 
+mod connection_string;
 mod image;
 
 use std::cmp;
