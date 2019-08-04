@@ -6,6 +6,7 @@ mod connection_string;
 mod image;
 
 use std::cmp;
+use std::convert::TryFrom;
 use std::error;
 use std::fs;
 use std::iter;
@@ -20,6 +21,7 @@ use rxprog::programmer::{
 use rxprog::target::SerialTarget;
 use serialport::prelude::*;
 
+use connection_string::ConnectionString;
 use image::Image;
 
 fn print_table(headings: Vec<&str>, data: Vec<Vec<&str>>) {
@@ -210,72 +212,36 @@ fn list_areas_and_blocks(prog: &mut ProgrammerConnectedNewBitRateSelected) -> rx
 fn main() -> Result<(), Box<dyn error::Error>> {
     let matches = App::new("rxprog-cli")
         .arg(
-            Arg::with_name("port")
-                .short("p")
-                .long("port")
-                .value_name("PORT")
-                .help("Serial port connected to the target")
-                .takes_value(true),
+            Arg::with_name("connection_string")
+                .index(1)
+                .help("A semicolon (;) separated list of key=value pairs specifiying the required configuration options to connect to a target"),
         )
-        .arg(
-            Arg::with_name("device")
-                .short("d")
-                .long("device")
-                .value_name("DEVICE_CODE")
-                .help("Device on the target to select")
-                .takes_value(true)
-                .requires("port"),
-        )
-        .arg(
-            Arg::with_name("clock_mode")
-                .short("c")
-                .long("clock_mode")
-                .value_name("CLOCK_MODE")
-                .help("Clock mode to select")
-                .takes_value(true)
-                .requires("device"),
-        )
-        .arg(
-            Arg::with_name("bit_rate")
-                .short("b")
-                .long("bit_rate")
-                .value_name("BIT_RATE")
-                .help("Bit rate for programming")
-                .takes_value(true)
-                .requires_all(&["input_frequency", "multiplication_ratios"]),
-        )
-        .arg(
-            Arg::with_name("input_frequency")
-                .short("f")
-                .long("input_frequency")
-                .value_name("INPUT_FREQUENCY")
-                .help("Frequency of device clock input")
-                .takes_value(true)
-                .requires_all(&["bit_rate", "multiplication_ratios"]),
-        )
-        .arg(
-            Arg::with_name("multiplication_ratios")
-                .short("m")
-                .long("multiplication_ratios")
-                .value_name("MULTIPLICATION_RATIOS")
-                .help("Multiplication ratio for each clock")
-                .takes_value(true)
-                .requires_all(&["bit_rate", "input_frequency"]),
-        )
-        .arg(Arg::with_name("image_path").index(1))
+        .arg(Arg::with_name("image_path").index(2))
         .get_matches();
 
-    let port = matches.value_of("port");
+    // An empty connection string is valid and simply parsed as having no
+    // key/value pairs. Since not specifying a connection string and not
+    // specifying a port within the connection string have the same behaviour,
+    // we're OK to specify a default
+    let connection_string = matches.value_of("connection_string").unwrap_or("");
+    let connection_string = ConnectionString::try_from(connection_string);
+    if let Err(e) = connection_string {
+        println!("Error parsing connection string: {}", e);
 
+        return Ok(());
+    }
+    let connection_string = connection_string.unwrap();
+
+    let port = connection_string.get("p");
     if port.is_none() {
         list_ports();
 
         println!();
-        println!("Hint: select a port with -p PORT");
+        println!("Hint: select a port with p=<port name> in the connection string");
         return Ok(());
     }
-
     let port = port.unwrap();
+
     let p = serialport::open_with_settings(
         port,
         &SerialPortSettings {
@@ -289,47 +255,45 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     )?;
     let target = SerialTarget::new(p);
     let mut prog = Programmer::new(Box::new(target)).connect()?;
-    let device = matches.value_of("device");
 
+    let device = connection_string.get("d");
     if device.is_none() {
         list_devices(&mut prog)?;
 
         println!();
-        println!("Hint: select a device with -d DEVICE_CODE");
+        println!("Hint: select a device with d=<device code> in the connection string");
         return Ok(());
     }
-
     let device = device.unwrap();
-    let mut prog = prog.select_device(&device.to_string())?;
-    let clock_mode = matches.value_of("clock_mode");
 
+    let mut prog = prog.select_device(&device.to_string())?;
+
+    let clock_mode = connection_string.get("cm");
     if clock_mode.is_none() {
         list_clock_modes(&mut prog)?;
 
         println!();
-        println!("Hint: select a clock mode with -c CLOCK_MODE");
+        println!("Hint: select a clock mode with cm=<clock mode> in the connection string");
         return Ok(());
     }
-
     let clock_mode = clock_mode
         .unwrap()
         .parse::<u8>()
         .expect("Invalid clock mode");
+
     let mut prog = prog.select_clock_mode(clock_mode)?;
 
-    let bit_rate = matches.value_of("bit_rate");
-    let input_frequency = matches.value_of("input_frequency");
-    let multiplication_ratios = matches.value_of("multiplication_ratios");
-
+    let bit_rate = connection_string.get("br");
+    let input_frequency = connection_string.get("if");
+    let multiplication_ratios = connection_string.get("mr");
     if bit_rate.is_none() || input_frequency.is_none() || multiplication_ratios.is_none() {
         list_multiplication_ratios(&mut prog)?;
         list_operating_frequencies(&mut prog)?;
 
         println!();
-        println!("Hint: select an input frequency, multiplication ratio and bit rate with -f INPUT_FREQUENCY -m MULTIPLICATION_RATIOS -b BIT_RATE");
+        println!("Hint: select an input frequency, multiplication ratio and bit rate with if=<input frequency>;mr=<ratio 1>,<ratio 2>,...;br=<bit rate> in the connection string");
         return Ok(());
     }
-
     let bit_rate = bit_rate.unwrap().parse::<u16>().expect("Invalid bit rate");
     let input_frequency = input_frequency
         .unwrap()
@@ -356,7 +320,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     println!("Connected with new bit rate set!");
 
     let image_path = matches.value_of("image_path");
-
     if image_path.is_none() {
         list_areas_and_blocks(&mut prog)?;
 
@@ -364,7 +327,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         println!("Hint: specify an image to program the device");
         return Ok(());
     }
-
     let image_path = image_path.unwrap();
 
     let mut image = Image::new(&prog.user_area()?);
