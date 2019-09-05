@@ -38,9 +38,9 @@ impl CommandData {
         bytes.extend(payload);
 
         if payload_size != 0 {
-            let sum = bytes.iter().map(|x| Wrapping(*x)).sum::<Wrapping<u8>>().0;
-            let checksum = !sum + 1;
-            bytes.push(checksum);
+            let sum = bytes.iter().map(|x| Wrapping(*x)).sum::<Wrapping<u8>>();
+            let checksum = !sum + Wrapping::<u8>(1);
+            bytes.push(checksum.0);
         }
 
         bytes
