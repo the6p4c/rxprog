@@ -2,12 +2,12 @@
 name = "rxprog"
 version = "1.0.0"
 description = "Library implementing the Boot Mode protocol for specific Renesas microcontrollers and CLI for programming firmware images"
-keywords = ["renesas", "renesas rx", "boot mode"]
+keywords = ["renesas"]
 categories = ["command-line-utilities"]
 authors = ["The6P4C <watsonjcampbell@gmail.com>"]
 repository = "https://github.com/the6p4c/rxprog.git"
 homepage = "https://github.com/the6p4c/rxprog"
-license = "GPLv3"
+license = "GPL-3.0-only"
 readme = "README.md"
 documentation = "https://docs.rs/rxprog"
 edition = "2018"
