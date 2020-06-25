@@ -350,16 +350,16 @@ fn main2() -> Result<(), CLIError> {
 
     let mut image = Image::new(&prog.user_area()?);
     let mut address_high = 0u16;
-    for record in ihex::reader::Reader::new(fs::read_to_string(image_path)?.as_str()) {
+    for record in ihex::Reader::new(fs::read_to_string(image_path)?.as_str()) {
         match record.map_err(|e| format!("failed to parse ihex record ({})", e))? {
-            ihex::record::Record::Data {
+            ihex::Record::Data {
                 offset,
                 value: data,
             } => {
                 let address = ((address_high as u32) << 16) | (offset as u32);
                 image.add_data(address, &data);
             }
-            ihex::record::Record::ExtendedLinearAddress(ela) => address_high = ela,
+            ihex::Record::ExtendedLinearAddress(ela) => address_high = ela,
             _ => (),
         }
     }

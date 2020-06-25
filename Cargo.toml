@@ -8,7 +8,7 @@ edition = "2018"
 members = ["rxprog"]
 
 [dependencies]
-clap = "~2.27.0"
-ihex = "1.1"
+clap = "2.33.1"
+ihex = "3.0.0"
 rxprog = { path = "rxprog" }
 serialport = "3.3.0"
