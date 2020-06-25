@@ -1,7 +1,14 @@
 [package]
 name = "rxprog-cli"
 version = "0.1.0"
+description = "Programming utility for Renesas microcontrollers supporting the Boot Mode protocol"
+keywords = ["renesas"]
+categories = ["command-line-utilities"]
 authors = ["The6P4C <watsonjcampbell@gmail.com>"]
+repository = "https://github.com/the6p4c/rxprog-cli.git"
+homepage = "https://github.com/the6p4c/rxprog-cli"
+license = "GPLv3"
+readme = "README.md"
 edition = "2018"
 
 [workspace]
