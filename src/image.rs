@@ -48,6 +48,41 @@ impl Image {
         region.data[offset..offset + data.len()].copy_from_slice(data);
     }
 
+    pub fn add_data_from_ihex(&mut self, reader: ihex::Reader) -> Result<(), ihex::ReaderError> {
+        let mut address_high = 0u16;
+        for record in reader {
+            match record? {
+                ihex::Record::Data {
+                    offset,
+                    value: data,
+                } => {
+                    let address = ((address_high as u32) << 16) | (offset as u32);
+                    self.add_data(address, &data);
+                }
+                ihex::Record::ExtendedLinearAddress(ela) => address_high = ela,
+                _ => (),
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn add_data_from_srec(
+        &mut self,
+        records: impl Iterator<Item = Result<srec::Record, srec::reader::Error>>,
+    ) -> Result<(), srec::reader::Error> {
+        for record in records {
+            match record? {
+                srec::Record::S1(d) => self.add_data(d.address.0 as u32, &d.data),
+                srec::Record::S2(d) => self.add_data(d.address.0 as u32, &d.data),
+                srec::Record::S3(d) => self.add_data(d.address.0, &d.data),
+                _ => (),
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn programmable_blocks(&self, block_length: usize) -> impl Iterator<Item = Block> + '_ {
         self.regions
             .iter()

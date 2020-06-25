@@ -8,8 +8,11 @@ mod image;
 use std::cmp;
 use std::convert::TryFrom;
 use std::error;
+use std::ffi::OsStr;
+use std::fmt;
 use std::fs;
 use std::iter;
+use std::path::Path;
 use std::time;
 
 use clap::{App, Arg};
@@ -201,6 +204,48 @@ impl From<serialport::Error> for CLIError {
     }
 }
 
+enum ImageType {
+    IHEX,
+    SREC,
+}
+
+impl ImageType {
+    fn from_arg(s: &str) -> ImageType {
+        match s {
+            "ihex" => ImageType::IHEX,
+            "srec" => ImageType::SREC,
+            _ => unreachable!(),
+        }
+    }
+
+    fn from_extension(extension: Option<&OsStr>) -> Option<ImageType> {
+        match extension {
+            Some(extension) => match extension.to_str() {
+                Some(extension) => match extension {
+                    "hex" | "ihex" | "ihx" => Some(ImageType::IHEX),
+                    "srec" | "mot" => Some(ImageType::SREC),
+                    _ => None,
+                },
+                None => None,
+            },
+            None => None,
+        }
+    }
+}
+
+impl fmt::Display for ImageType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ImageType::IHEX => "ihex",
+                ImageType::SREC => "srec",
+            }
+        )
+    }
+}
+
 fn main2() -> Result<(), CLIError> {
     let matches = App::new("rxprog-cli")
         .arg(
@@ -215,6 +260,7 @@ fn main2() -> Result<(), CLIError> {
                 .help("A semicolon (;) separated list of key=value pairs specifiying the required configuration options to connect to a target"),
         )
         .arg(Arg::with_name("image_path").index(2))
+        .arg(Arg::with_name("image_type").long("image-type").short("T").value_name("IMAGE_TYPE").help("The type of the image file").possible_values(&["ihex", "srec"]).takes_value(true))
         .get_matches();
 
     // An empty connection string is valid and simply parsed as having no
@@ -347,20 +393,37 @@ fn main2() -> Result<(), CLIError> {
         return Ok(());
     }
     let image_path = image_path.unwrap();
+    let image_string = fs::read_to_string(image_path)?;
+
+    let image_type = matches
+        .value_of("image_type")
+        .map(ImageType::from_arg)
+        .or_else(|| {
+            let image_type = ImageType::from_extension(Path::new(image_path).extension());
+
+            // If we guessed the type of the image from the extension, tell the
+            // user. We could totally be wrong!
+            if let Some(image_type) = &image_type {
+                println!("Detected {} image from extension", image_type);
+            }
+
+            image_type
+        })
+        .ok_or("could not determine image type (hint: specify explicitly with -T)")?;
 
     let mut image = Image::new(&prog.user_area()?);
-    let mut address_high = 0u16;
-    for record in ihex::Reader::new(fs::read_to_string(image_path)?.as_str()) {
-        match record.map_err(|e| format!("failed to parse ihex record ({})", e))? {
-            ihex::Record::Data {
-                offset,
-                value: data,
-            } => {
-                let address = ((address_high as u32) << 16) | (offset as u32);
-                image.add_data(address, &data);
-            }
-            ihex::Record::ExtendedLinearAddress(ela) => address_high = ela,
-            _ => (),
+    match image_type {
+        ImageType::IHEX => {
+            let reader = ihex::Reader::new(image_string.as_str());
+            image
+                .add_data_from_ihex(reader)
+                .map_err(|e| format!("failed to parse ihex ({})", e))?;
+        }
+        ImageType::SREC => {
+            let records = srec::reader::read_records(image_string.as_str());
+            image
+                .add_data_from_srec(records)
+                .map_err(|e| format!("failed to parse srec ({})", e))?;
         }
     }
 

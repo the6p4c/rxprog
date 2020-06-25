@@ -12,3 +12,4 @@ clap = "2.33.1"
 ihex = "3.0.0"
 rxprog = { path = "rxprog" }
 serialport = "3.3.0"
+srec = "0.1.2"

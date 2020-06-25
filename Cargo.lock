@@ -204,6 +204,7 @@ dependencies = [
  "ihex 3.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rxprog 0.1.0",
  "serialport 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "srec 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -221,6 +222,11 @@ dependencies = [
  "regex 1.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "srec"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "strsim"
@@ -325,6 +331,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum regex 1.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "1325e8a57b7da4cbcb38b3957112f729990bad0a18420e7e250ef6b1d9a15763"
 "checksum regex-syntax 0.6.7 (registry+https://github.com/rust-lang/crates.io-index)" = "9d76410686f9e3a17f06128962e0ecc5755870bb890c34820c7af7f1db2e1d48"
 "checksum serialport 3.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5b8d3ecaf58010bedccae17be55d4ed6f2ecde5646fc48ce8c66ea2d35a1419c"
+"checksum srec 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0a9f5fe3743d9e8135b763161b44830973e95c1562926817862af8e12f7aad82"
 "checksum strsim 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 "checksum termion 1.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "6a8fb22f7cde82c8220e5aeacb3258ed7ce996142c77cba193f203515e26c330"
 "checksum textwrap 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d326610f408c7a4eb6f51c37c330e496b08506c9457c9d34287ecc38809fb060"
