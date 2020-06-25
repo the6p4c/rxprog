@@ -1,6 +1,6 @@
 [package]
 name = "rxprog"
-version = "1.0.0"
+version = "1.0.1"
 description = "Library implementing the Boot Mode protocol for specific Renesas microcontrollers and CLI for programming firmware images"
 keywords = ["renesas"]
 categories = ["command-line-utilities"]
