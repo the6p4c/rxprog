@@ -257,7 +257,7 @@ fn main2() -> Result<(), CLIError> {
         .arg(
             Arg::with_name("connection_string")
                 .index(1)
-                .help("A semicolon (;) separated list of key=value pairs specifiying the required configuration options to connect to a target"),
+                .help("A semicolon (;) separated list of key=value pairs specifying the required configuration options to connect to a target"),
         )
         .arg(Arg::with_name("image_path").index(2))
         .arg(Arg::with_name("image_type").long("image-type").short("T").value_name("IMAGE_TYPE").help("The type of the image file").possible_values(&["ihex", "srec"]).takes_value(true))
@@ -290,7 +290,7 @@ rxprog-cli will attempt to guess the format of the image based on its extension.
 
     let port = connection_string.get("p");
     if port.is_none() {
-        println!("No port specified in connection string. Listing availiable serial ports:");
+        println!("No port specified in connection string. Listing available serial ports:");
         list_ports()?;
 
         println!();
