@@ -1,7 +1,5 @@
 use std::io::{self, Read};
 
-use crate::command::Command;
-
 /// Chip operating modes which can be entered after a reset
 pub enum OperatingMode {
     /// Executes main user code

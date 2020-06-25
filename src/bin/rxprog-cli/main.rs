@@ -7,7 +7,6 @@ mod image;
 
 use std::cmp;
 use std::convert::TryFrom;
-use std::error;
 use std::ffi::OsStr;
 use std::fmt;
 use std::fs;
