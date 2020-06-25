@@ -261,6 +261,21 @@ fn main2() -> Result<(), CLIError> {
         )
         .arg(Arg::with_name("image_path").index(2))
         .arg(Arg::with_name("image_type").long("image-type").short("T").value_name("IMAGE_TYPE").help("The type of the image file").possible_values(&["ihex", "srec"]).takes_value(true))
+        .long_about("Programming utility for Renesas microcontrollers supporting the Boot Mode protocol\n\
+\n\
+The connection to the target is specified by way of a connection string. This connection string specifies the serial port (p), device (d), clock mode (cm), input frequency (if), multiplication ratios (mr), and bit rate (br) required by the Boot Mode protocol.\n\
+\n\
+Though all fields are required to successfully program a target, omitting any field will query the target for the available values for the missing field. This can be used to successively build a connection string, beginning with an empty string to show all available serial ports and finishing by specifying if, mr and br.\n\
+\n\
+Each query shows the fields of the connection string which need to be populated to progress.\n\
+\n\
+For example, to connect to a target on COM3 to query the available devices:\n\
+\trxprog-cli p=COM3\n\
+To connect to a target on /dev/ttyS4 and program an image:\n\
+\trxprog-cli p=/dev/ttyS4;d=7805;cm=0;if=3200;mr=x1,x1;br=115200 image.ihex\n\
+\n\
+rxprog-cli will attempt to guess the format of the image based on its extension. If the image has a non-standard extension, the image type can be specified explicitly with -T.\n")
+        .about("Programming utility for Renesas microcontrollers supporting the Boot Mode protocol")
         .get_matches();
 
     // An empty connection string is valid and simply parsed as having no
