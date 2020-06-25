@@ -320,38 +320,40 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     println!("Transitioned to programming/erasure state successfully");
     println!();
 
+    println!("Programming...");
     let mut prog = prog.program_user_or_data_area()?;
     for block in image.programmable_blocks(256) {
-        println!(
-            "Programming {:#X} bytes at {:#X}",
-            block.data.len(),
-            block.start_address
-        );
-
         let mut data = [0u8; 256];
         data.copy_from_slice(&block.data);
         prog.program_block(block.start_address, data)?;
     }
     let mut prog = prog.end()?;
+    println!("Programming complete.");
 
+    println!("Verifying...");
+    let mut verification_failed = false;
     for block in image.programmable_blocks(256) {
-        println!(
-            "Verifying {:#X} bytes at {:#X}",
-            block.data.len(),
-            block.start_address
-        );
-
         let programmed_data = prog.read_memory(
             MemoryArea::UserArea,
             block.start_address,
             block.data.len() as u32,
         )?;
 
-        if programmed_data == block.data {
-            println!("Verified");
-        } else {
-            println!("Falied to verify");
+        if programmed_data != block.data {
+            verification_failed = true;
+
+            println!(
+                "Verify: block of {:#X} bytes at {:#X} did not match",
+                block.data.len(),
+                block.start_address
+            );
         }
+    }
+
+    if !verification_failed {
+        println!("Verification complete.");
+    } else {
+        println!("Verification failed.");
     }
 
     if matches.is_present("show_checksums") {
