@@ -9,6 +9,7 @@ repository = "https://github.com/the6p4c/rxprog.git"
 homepage = "https://github.com/the6p4c/rxprog"
 license = "GPLv3"
 readme = "README.md"
+documentation = "https://docs.rs/rxprog"
 edition = "2018"
 
 [[bin]]
