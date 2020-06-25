@@ -265,7 +265,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         println!("Hint: select an input frequency, multiplication ratio and bit rate with if=<input frequency>;mr=<ratio 1>,<ratio 2>,...;br=<bit rate>");
         return Ok(());
     }
-    let bit_rate = bit_rate.unwrap().parse::<u16>().expect("Invalid bit rate");
+    let bit_rate = bit_rate.unwrap().parse::<u32>().expect("Invalid bit rate");
+    assert!(bit_rate % 100 == 0, "Bit rate must be a multiple of 100");
     let input_frequency = input_frequency
         .unwrap()
         .parse::<u16>()
@@ -286,6 +287,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         })
         .collect::<Vec<_>>();
 
+    let bit_rate = (bit_rate / 100) as u16;
     let mut prog = prog.set_new_bit_rate(bit_rate, input_frequency, multiplication_ratios)?;
 
     let image_path = matches.value_of("image_path");
