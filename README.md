@@ -1,2 +1,2 @@
-# rxprog-cli
-Programming utility for Renesas microcontrollers supporting the Boot Mode protocol
+# rxprog
+Library implementing the Boot Mode protocol for specific Renesas microcontrollers and CLI for programming firmware images
