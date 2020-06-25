@@ -62,8 +62,9 @@ fn print_table(headings: Vec<&str>, data: Vec<Vec<&str>>) {
     }
 }
 
-fn list_ports() {
-    let ports = serialport::available_ports().expect("Could not retrieve list of available ports");
+fn list_ports() -> Result<(), CLIError> {
+    let ports =
+        serialport::available_ports().map_err(|_| "could not retrieve list of available ports")?;
     print_table(
         vec!["Port name"],
         ports
@@ -71,6 +72,8 @@ fn list_ports() {
             .map(|port| vec![port.port_name.as_str()])
             .collect::<Vec<_>>(),
     );
+
+    Ok(())
 }
 
 fn list_devices(prog: &mut ProgrammerConnected) -> rxprog::Result<()> {
@@ -161,7 +164,44 @@ fn list_operating_frequencies(
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn error::Error>> {
+enum CLIError {
+    Message(String),
+    Programmer(rxprog::Error),
+    IO(std::io::Error),
+    SerialPort(serialport::Error),
+}
+
+impl From<&str> for CLIError {
+    fn from(s: &str) -> CLIError {
+        CLIError::Message(s.to_string())
+    }
+}
+
+impl From<String> for CLIError {
+    fn from(s: String) -> CLIError {
+        CLIError::Message(s)
+    }
+}
+
+impl From<rxprog::Error> for CLIError {
+    fn from(e: rxprog::Error) -> CLIError {
+        CLIError::Programmer(e)
+    }
+}
+
+impl From<std::io::Error> for CLIError {
+    fn from(e: std::io::Error) -> CLIError {
+        CLIError::IO(e)
+    }
+}
+
+impl From<serialport::Error> for CLIError {
+    fn from(e: serialport::Error) -> CLIError {
+        CLIError::SerialPort(e)
+    }
+}
+
+fn main2() -> Result<(), CLIError> {
     let matches = App::new("rxprog-cli")
         .arg(
             Arg::with_name("show_checksums")
@@ -182,18 +222,13 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     // specifying a port within the connection string have the same behaviour,
     // we're OK to specify a default
     let connection_string = matches.value_of("connection_string").unwrap_or("");
-    let connection_string = ConnectionString::try_from(connection_string);
-    if let Err(e) = connection_string {
-        println!("Error parsing connection string: {}", e);
-
-        return Ok(());
-    }
-    let connection_string = connection_string.unwrap();
+    let connection_string = ConnectionString::try_from(connection_string)
+        .map_err(|e| format!("could not parse connection string ({})", e))?;
 
     let port = connection_string.get("p");
     if port.is_none() {
         println!("No port specified in connection string. Listing availiable serial ports:");
-        list_ports();
+        list_ports()?;
 
         println!();
         println!("Hint: select a port with p=<port name>");
@@ -248,7 +283,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let clock_mode = clock_mode
         .unwrap()
         .parse::<u8>()
-        .expect("Invalid clock mode");
+        .map_err(|_| "invalid clock mode")?;
 
     let mut prog = prog.select_clock_mode(clock_mode)?;
 
@@ -265,27 +300,41 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         println!("Hint: select an input frequency, multiplication ratio and bit rate with if=<input frequency>;mr=<ratio 1>,<ratio 2>,...;br=<bit rate>");
         return Ok(());
     }
-    let bit_rate = bit_rate.unwrap().parse::<u32>().expect("Invalid bit rate");
-    assert!(bit_rate % 100 == 0, "Bit rate must be a multiple of 100");
+    let bit_rate = bit_rate
+        .unwrap()
+        .parse::<u32>()
+        .map_err(|_| "invalid bit rate")?;
+    if bit_rate % 100 != 0 {
+        return Err("bit rate must be a multiple of 100".into());
+    }
     let input_frequency = input_frequency
         .unwrap()
         .parse::<u16>()
-        .expect("Invalid input frequency");
+        .map_err(|_| "invalid input frequency")?;
     let multiplication_ratios = multiplication_ratios
         .unwrap()
         .split(',')
         .map(|mrs| {
+            // A multiplication ratio must at least be a 'x' or '/' followed by
+            // one digit, so anything shorter than two characters must be
+            // invalid. Also stops the `split_at()` and `next().unwrap()` calls
+            // from panicking if the string is too short.
+            if mrs.len() < 2 {
+                return Err(());
+            }
+
             let (c, ratio) = mrs.split_at(1);
             let c = c.chars().next().unwrap();
-            let ratio = ratio.parse::<u8>().expect("Invalid multiplication ratio");
+            let ratio = ratio.parse::<u8>().map_err(|_| ())?;
 
             match c {
-                'x' => MultiplicationRatio::MultiplyBy(ratio),
-                '/' => MultiplicationRatio::DivideBy(ratio),
-                _ => panic!("Invalid multiplication ratio"),
+                'x' => Ok(MultiplicationRatio::MultiplyBy(ratio)),
+                '/' => Ok(MultiplicationRatio::DivideBy(ratio)),
+                _ => Err(()),
             }
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| "invalid multiplication ratio")?;
 
     let bit_rate = (bit_rate / 100) as u16;
     let mut prog = prog.set_new_bit_rate(bit_rate, input_frequency, multiplication_ratios)?;
@@ -302,7 +351,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let mut image = Image::new(&prog.user_area()?);
     let mut address_high = 0u16;
     for record in ihex::reader::Reader::new(fs::read_to_string(image_path)?.as_str()) {
-        match record.expect("record is Ok") {
+        match record.map_err(|e| format!("failed to parse ihex record ({})", e))? {
             ihex::record::Record::Data {
                 offset,
                 value: data,
@@ -366,4 +415,14 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     }
 
     Ok(())
+}
+
+fn main() {
+    match main2() {
+        Ok(_) => {}
+        Err(CLIError::Message(s)) => println!("Error: {}", s),
+        Err(CLIError::Programmer(e)) => println!("Programmer error: {}", e),
+        Err(CLIError::IO(e)) => println!("IO error: {}", e),
+        Err(CLIError::SerialPort(e)) => println!("Serial error: {}", e),
+    }
 }
