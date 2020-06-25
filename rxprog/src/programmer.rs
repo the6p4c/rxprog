@@ -166,7 +166,7 @@ impl ProgrammerConnectedClockModeSelected {
         };
         cmd.execute(&mut self.target)?;
 
-        let baud_rate: u32 = (bit_rate * 100).into();
+        let baud_rate: u32 = (bit_rate as u32) * 100;
         self.target.set_baud_rate(baud_rate)?;
 
         let cmd = command::commands::NewBitRateSelectionConfirmation {};
