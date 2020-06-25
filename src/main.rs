@@ -211,7 +211,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             flow_control: FlowControl::None,
             parity: Parity::None,
             stop_bits: StopBits::One,
-            timeout: time::Duration::from_millis(1000),
+            timeout: time::Duration::from_millis(10_000),
         },
     )?;
     let target = SerialTarget::new(p);
