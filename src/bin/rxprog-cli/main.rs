@@ -436,7 +436,7 @@ rxprog-cli will attempt to guess the format of the image based on its extension.
                 .map_err(|e| format!("failed to parse ihex ({})", e))?;
         }
         ImageType::SREC => {
-            let records = srec::reader::read_records(image_string.as_str());
+            let records = srec::read_records(image_string.as_str());
             image
                 .add_data_from_srec(records)
                 .map_err(|e| format!("failed to parse srec ({})", e))?;

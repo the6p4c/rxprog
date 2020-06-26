@@ -69,13 +69,13 @@ impl Image {
 
     pub fn add_data_from_srec(
         &mut self,
-        records: impl Iterator<Item = Result<srec::Record, srec::reader::Error>>,
-    ) -> Result<(), srec::reader::Error> {
+        records: impl Iterator<Item = Result<srec::Record, srec::ReaderError>>,
+    ) -> Result<(), srec::ReaderError> {
         for record in records {
             match record? {
-                srec::Record::S1(d) => self.add_data(d.address.0 as u32, &d.data),
-                srec::Record::S2(d) => self.add_data(d.address.0 as u32, &d.data),
-                srec::Record::S3(d) => self.add_data(d.address.0, &d.data),
+                srec::Record::S1(d) => self.add_data(d.address.into(), &d.data),
+                srec::Record::S2(d) => self.add_data(d.address.into(), &d.data),
+                srec::Record::S3(d) => self.add_data(d.address.into(), &d.data),
                 _ => (),
             }
         }

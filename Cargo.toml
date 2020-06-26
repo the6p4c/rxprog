@@ -1,6 +1,6 @@
 [package]
 name = "rxprog"
-version = "1.0.1"
+version = "1.0.2"
 description = "Library implementing the Boot Mode protocol for specific Renesas microcontrollers and CLI for programming firmware images"
 keywords = ["renesas"]
 categories = ["command-line-utilities"]
@@ -25,7 +25,7 @@ serialport = "3.3.0"
 # for rxprog-cli binary build only
 clap = { version = "2.33.1", optional = true }
 ihex = { version = "3.0.0", optional = true }
-srec = { version = "0.1.2", optional = true }
+srec = { version = "0.2.0", optional = true }
 
 [dev-dependencies]
 mock-io = { git = "https://github.com/carllerche/mock-io", default-features = false, features = [] }

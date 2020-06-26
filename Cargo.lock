@@ -198,7 +198,7 @@ checksum = "26412eb97c6b088a6997e05f69403a802a92d520de2f8e63c2b65f9e0f47c4e8"
 
 [[package]]
 name = "rxprog"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "clap",
  "ihex",
@@ -226,9 +226,9 @@ dependencies = [
 
 [[package]]
 name = "srec"
-version = "0.1.2"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a9f5fe3743d9e8135b763161b44830973e95c1562926817862af8e12f7aad82"
+checksum = "17c3a0538ec242e3cd333cdcdc8b720faa2fa0a9d7f444cf1ff63e7d3303adfb"
 
 [[package]]
 name = "strsim"
